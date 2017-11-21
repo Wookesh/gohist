@@ -3,60 +3,57 @@ package main
 import (
 	"flag"
 	"fmt"
-	"go/ast"
-	"go/parser"
-	"go/token"
-	"io/ioutil"
-	"log"
-	"path"
 
 	"github.com/fatih/color"
-	"github.com/wookesh/mgr/diff"
+	"github.com/wookesh/gohist/collector"
+	"github.com/wookesh/gohist/diff"
 )
 
 var (
-	projectPath = flag.String("path", "", "")
+	projectPath = flag.String("path", "C:/Go/projects/src/github.com/wookesh/distributed", "")
 )
-
-type Func struct {
-	f *ast.FuncDecl
-}
 
 func main() {
 	flag.Parse()
 
-	fset := token.NewFileSet()
-
-	pkgs, err := parser.ParseDir(fset, *projectPath, nil, parser.AllErrors)
+	history, err := collector.CreateHistory(*projectPath)
 	if err != nil {
 		panic(err)
 	}
-	ast.Print(fset, pkgs)
-	for name, pkg := range pkgs {
-		log.Println("Package:", name)
-		for fileName, file := range pkg.Files {
-			log.Println("File:", fileName)
-			text, err := ioutil.ReadFile(path.Join(fileName))
-			if err != nil {
-				panic(err)
-			}
-			for _, decl := range file.Decls {
-				if f, ok := decl.(*ast.FuncDecl); ok {
-					log.Println("Func:", f.Name)
-					//log.Println(string(text[f.Pos()-1:f.End()]))
-					coloring := diff.Diff(f, f, diff.ModeBoth)
-					log.Println(coloring)
-					//log.Print(len(text), f.End()-1)
-					//if len(text) == int(f.End()-1) {
-					//	 last function, no ENDLINE
-					//PrintWithColor(coloring, string(text),int(f.Pos()-1), int(f.End()-2))
-					//} else {
-					PrintWithColor(coloring, string(text), int(f.Pos()-1), int(f.End()-1))
-					//}
-				}
-			}
-		}
-	}
+	fmt.Print(history)
+
+	//fset := token.NewFileSet()
+	//
+	//pkgs, err := parser.ParseDir(fset, *projectPath, nil, parser.AllErrors)
+	//if err != nil {
+	//	panic(err)
+	//}
+	//ast.Print(fset, pkgs)
+	//for name, pkg := range pkgs {
+	//	log.Println("Package:", name)
+	//	for fileName, file := range pkg.Files {
+	//		log.Println("File:", fileName)
+	//		text, err := ioutil.ReadFile(path.Join(fileName))
+	//		if err != nil {
+	//			panic(err)
+	//		}
+	//		for _, decl := range file.Decls {
+	//			if f, ok := decl.(*ast.FuncDecl); ok {
+	//				log.Println("Func:", f.Name)
+	//				//log.Println(string(text[f.Pos()-1:f.End()]))
+	//				coloring := diff.Diff(f, f, diff.ModeBoth)
+	//				log.Println(coloring)
+	//				//log.Print(len(text), f.End()-1)
+	//				//if len(text) == int(f.End()-1) {
+	//				//	 last function, no ENDLINE
+	//				//PrintWithColor(coloring, string(text),int(f.Pos()-1), int(f.End()-2))
+	//				//} else {
+	//				PrintWithColor(coloring, string(text), int(f.Pos()-1), int(f.End()-1))
+	//				//}
+	//			}
+	//		}
+	//	}
+	//}
 }
 
 func PrintWithColor(coloring diff.Coloring, text string, start, end int) {
