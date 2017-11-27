@@ -116,6 +116,9 @@ func createHistoryLine(commits map[string]*object.Commit, start, end string) (hi
 			}
 		}
 	}
+	for i, j := 0, len(history)-1; i < j; i, j = i+1, j-1 {
+		history[i], history[j] = history[j], history[i]
+	}
 	return
 }
 
