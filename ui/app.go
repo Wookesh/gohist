@@ -69,7 +69,7 @@ func (h *handler) Get(c echo.Context) error {
 	var left, right diff.Coloring
 	if pos > 0 {
 		left = diff.Diff(f.History[pos-1].Func, f.History[pos].Func, diff.ModeOld)
-		right = diff.Diff(f.History[pos-1].Func, f.History[pos].Func, diff.ModeNew)
+		right = diff.Diff(f.History[pos].Func, f.History[pos-1].Func, diff.ModeNew)
 	} else {
 		right = diff.Diff(nil, f.History[pos].Func, diff.ModeNew)
 	}
@@ -145,12 +145,14 @@ func color(s string, coloring diff.Coloring, offset int) template.HTML {
 func toColor(c diff.Color) string {
 	switch c {
 	case diff.ColorSame:
-		return "black"
+		return "white"
 	case diff.ColorNew:
 		return "green"
 	case diff.ColorRemoved:
 		return "red"
+	case diff.ColorSimilar:
+		return "lightblue"
 	default:
-		return ""
+		return "white"
 	}
 }

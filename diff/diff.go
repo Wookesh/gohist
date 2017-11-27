@@ -2,45 +2,17 @@ package diff
 
 import (
 	"go/ast"
-	"go/token"
 	"log"
+	"reflect"
 	"sort"
-)
-
-type Mode int
-
-type Color int
-
-const (
-	ColorSame Color = iota
-	ColorNew
-	ColorRemoved
-)
-
-type ColorChange struct {
-	Color Color
-	Pos   token.Pos
-	End   token.Pos
-}
-
-func NewColorChange(color Color, node ast.Node) ColorChange {
-	return ColorChange{color, node.Pos(), node.End()}
-}
-
-type Coloring []ColorChange
-
-const (
-	ModeNew Mode = iota
-	ModeOld
-	ModeBoth
 )
 
 func Diff(a, b ast.Node, mode Mode) Coloring {
 	if mode == ModeNew && a == nil {
 		return Coloring{NewColorChange(ColorNew, b)}
 	}
-	if mode == ModeOld && b != nil {
-		a, b = b, a
+	if mode == ModeOld && b == nil {
+		return Coloring{NewColorChange(ColorRemoved, a)}
 	}
 	return diff(a, b, mode)
 }
@@ -66,7 +38,7 @@ func diff(a, b ast.Node, mode Mode) Coloring {
 func diffDecl(a ast.Decl, b ast.Node, mode Mode) Coloring {
 	_, ok := b.(ast.Decl)
 	if !ok {
-		return Coloring{NewColorChange(ColorRemoved, a)}
+		return Coloring{NewColorChange(mode.ToColor(), a)}
 	}
 	switch t := a.(type) {
 	case *ast.FuncDecl:
@@ -78,7 +50,7 @@ func diffDecl(a ast.Decl, b ast.Node, mode Mode) Coloring {
 func diffFuncDecl(a *ast.FuncDecl, bNode ast.Node, mode Mode) Coloring {
 	b, ok := bNode.(*ast.FuncDecl)
 	if !ok {
-		return Coloring{NewColorChange(ColorRemoved, a)}
+		return Coloring{NewColorChange(mode.ToColor(), a)}
 	}
 	return diff(a.Body, b.Body, mode)
 }
@@ -86,7 +58,7 @@ func diffFuncDecl(a *ast.FuncDecl, bNode ast.Node, mode Mode) Coloring {
 func diffStmt(a ast.Stmt, b ast.Node, mode Mode) Coloring {
 	_, ok := b.(ast.Stmt)
 	if !ok {
-		return Coloring{NewColorChange(ColorRemoved, a)}
+		return Coloring{NewColorChange(mode.ToColor(), a)}
 	}
 	switch t := a.(type) {
 	case *ast.BlockStmt:
@@ -98,13 +70,13 @@ func diffStmt(a ast.Stmt, b ast.Node, mode Mode) Coloring {
 func diffBlockStmt(a *ast.BlockStmt, bNode ast.Node, mode Mode) Coloring {
 	b, ok := bNode.(*ast.BlockStmt)
 	if !ok {
-		return Coloring{NewColorChange(ColorRemoved, a)}
+		return Coloring{NewColorChange(mode.ToColor(), a)}
 	}
 
 	var coloring Coloring
 	for aStmt, bStmt := range matchStmts(a.List, b.List) {
 		if bStmt == nil {
-			coloring = append(coloring, NewColorChange(ColorRemoved, aStmt))
+			coloring = append(coloring, NewColorChange(mode.ToColor(), aStmt))
 		}
 		coloring = append(coloring, diff(aStmt, bStmt, mode)...)
 	}
@@ -135,13 +107,10 @@ func matchStmts(a, b []ast.Stmt) map[ast.Stmt]ast.Stmt {
 	matched := make(map[ast.Stmt]ast.Stmt)
 	var matchingList matchingElems
 	for _, aStmt := range a {
-		//aSize := getSize(aStmt)
 		for _, bStmt := range b {
-			//bSize := getSize(bStmt)
 			score := compare(aStmt, bStmt)
-			//score = score / (aSize + bSize - score)
 			if score > 0.0 {
-				log.Println(aStmt, score, bStmt)
+				log.Println("matchStmts:", reflect.TypeOf(aStmt), aStmt, score, reflect.TypeOf(bStmt), bStmt)
 				matchingList = append(matchingList, matchingElem{aStmt, score, bStmt})
 			}
 		}

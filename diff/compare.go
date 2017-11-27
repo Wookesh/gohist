@@ -1,109 +1,140 @@
 package diff
 
 import (
+	"fmt"
 	"go/ast"
-	"log"
+	"reflect"
 )
 
-func compare(a, b ast.Node) (score float64) {
-	switch t := a.(type) {
+func compare(aNode, bNode ast.Node) (score float64) {
+	switch a := aNode.(type) {
 	case *ast.BadStmt:
-		_, ok := b.(*ast.BadStmt)
+		_, ok := bNode.(*ast.BadStmt)
 		if ok {
 			score += 1
 		}
 	case *ast.DeclStmt:
-		bT, ok := b.(*ast.DeclStmt)
+		b, ok := bNode.(*ast.DeclStmt)
 		if !ok {
 			return
 		}
-		log.Print(t)
-		score += compare(t.Decl, bT.Decl)
+		score += compare(a.Decl, b.Decl)
 	case *ast.EmptyStmt:
-		_, ok := b.(*ast.EmptyStmt)
+		_, ok := bNode.(*ast.EmptyStmt)
 		if ok {
 			score += 1
 		}
 	case *ast.LabeledStmt:
-		_, ok := b.(*ast.LabeledStmt)
+		_, ok := bNode.(*ast.LabeledStmt)
 		if ok {
 			score += 1
 		}
 	case *ast.ExprStmt:
-		_, ok := b.(*ast.ExprStmt)
+		b, ok := bNode.(*ast.ExprStmt)
 		if ok {
-			score += 1
+			score += compareExpr(a.X, b.X)
 		}
 	case *ast.SendStmt:
-		_, ok := b.(*ast.SendStmt)
+		_, ok := bNode.(*ast.SendStmt)
 		if ok {
 			score += 1
 		}
 	case *ast.IncDecStmt:
-		_, ok := b.(*ast.IncDecStmt)
+		_, ok := bNode.(*ast.IncDecStmt)
 		if ok {
 			score += 1
 		}
 	case *ast.AssignStmt:
-		_, ok := b.(*ast.AssignStmt)
+		_, ok := bNode.(*ast.AssignStmt)
 		if ok {
 			score += 1
 		}
 	case *ast.GoStmt:
-		_, ok := b.(*ast.GoStmt)
+		_, ok := bNode.(*ast.GoStmt)
 		if ok {
 			score += 1
 		}
 	case *ast.DeferStmt:
-		_, ok := b.(*ast.DeferStmt)
+		_, ok := bNode.(*ast.DeferStmt)
 		if ok {
 			score += 1
 		}
 	case *ast.ReturnStmt:
-		_, ok := b.(*ast.ReturnStmt)
+		_, ok := bNode.(*ast.ReturnStmt)
 		if ok {
 			score += 1
 		}
 	case *ast.BranchStmt:
-		_, ok := b.(*ast.BranchStmt)
+		_, ok := bNode.(*ast.BranchStmt)
 		if ok {
 			score += 1
 		}
 	case *ast.BlockStmt:
-		_, ok := b.(*ast.BlockStmt)
+		_, ok := bNode.(*ast.BlockStmt)
 		if ok {
 			score += 1
 		}
 	case *ast.IfStmt:
-		_, ok := b.(*ast.IfStmt)
+		_, ok := bNode.(*ast.IfStmt)
 		if ok {
 			score += 1
 		}
 	case *ast.SwitchStmt:
-		_, ok := b.(*ast.SwitchStmt)
+		_, ok := bNode.(*ast.SwitchStmt)
 		if ok {
 			score += 1
 		}
 	case *ast.TypeSwitchStmt:
-		_, ok := b.(*ast.TypeSwitchStmt)
+		_, ok := bNode.(*ast.TypeSwitchStmt)
 		if ok {
 			score += 1
 		}
 	case *ast.SelectStmt:
-		_, ok := b.(*ast.SelectStmt)
+		_, ok := bNode.(*ast.SelectStmt)
 		if ok {
 			score += 1
 		}
 	case *ast.ForStmt:
-		_, ok := b.(*ast.ForStmt)
+		_, ok := bNode.(*ast.ForStmt)
 		if ok {
 			score += 1
 		}
 	case *ast.RangeStmt:
-		_, ok := b.(*ast.RangeStmt)
+		_, ok := bNode.(*ast.RangeStmt)
 		if ok {
 			score += 1
 		}
+	default:
+		fmt.Println("compare:", "unimplemented case: ", reflect.TypeOf(a))
+	}
+	return
+}
+
+func compareExpr(aExpr, bExpr ast.Expr) (score float64) {
+	switch a := aExpr.(type) {
+	case *ast.CallExpr:
+		b, ok := bExpr.(*ast.CallExpr)
+		if ok {
+			score = compareExpr(a.Fun, b.Fun)
+		}
+	case *ast.SelectorExpr:
+		b, ok := bExpr.(*ast.SelectorExpr)
+		if ok {
+			score = compareExpr(a.X, b.X)
+			if a.Sel.Name == b.Sel.Name {
+				score += 1
+			}
+			score = score / 2
+		}
+	case *ast.Ident:
+		b, ok := bExpr.(*ast.Ident)
+		if ok {
+			if a.Name == b.Name {
+				score += 1
+			}
+		}
+	default:
+		fmt.Println("compareExpr:", "unimplemented case: ", reflect.TypeOf(a))
 	}
 	return
 }

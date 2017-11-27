@@ -43,7 +43,9 @@
             {{if gt (.pos) 0 }}
                 {{with index .diffView.History.History (prev .pos)}}
                     <div class="row">{{.Commit.Hash}}</div>
-                    <pre><code>{{color .Text $.diffView.LeftDiff .Offset}}</code></pre>
+                    <div class="row">
+                        <pre style="background-color: #222222; color: white"><code>{{color .Text $.diffView.LeftDiff .Offset}}</code></pre>
+                    </div>
                 {{end}}
             {{else}}
             {{end}}
@@ -52,7 +54,9 @@
             {{if lt (.pos) (len .diffView.History.History)}}
                 {{with index .diffView.History.History .pos}}
                     <div class="row">{{.Commit.Hash}}</div>
-                    <pre><code>{{color .Text $.diffView.RightDiff .Offset}}</code></pre>
+                    <div class="row">
+                        <pre style="background-color: #222222; color: white"><code>{{color .Text $.diffView.RightDiff .Offset}}</code></pre>
+                    </div>
                 {{end}}
             {{else}}
             {{end}}
