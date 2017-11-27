@@ -2,26 +2,35 @@ package objects
 
 import (
 	"go/ast"
-	"time"
+
+	"gopkg.in/src-d/go-git.v4/plumbing/object"
 )
 
 type History struct {
-	Data map[string]FunctionHistory
+	Data map[string]*FunctionHistory
+}
+
+func NewHistory() *History {
+	return &History{
+		Data: make(map[string]*FunctionHistory),
+	}
 }
 
 type FunctionHistory struct {
-	History []HistoryElement
+	History []*HistoryElement
 }
 
 type HistoryElement struct {
-	Commit *Commit
+	Commit *object.Commit
 	Func   *ast.FuncDecl
+	Text   string
+	Offset int
 }
 
-type Commit struct {
-	SHA       string
-	Author    string
-	Committer string
-	Parent    []*Commit
-	Timestamp time.Time
-}
+//type Commit struct {
+//	SHA       string
+//	Author    string
+//	Committer string
+//	Parent    []*Commit
+//	Timestamp time.Time
+//}

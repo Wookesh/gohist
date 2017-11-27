@@ -6,25 +6,51 @@ import (
 	"go/parser"
 	"go/token"
 	"io/ioutil"
+	"path"
 	"strings"
 
 	"github.com/wookesh/gohist/objects"
 	git "gopkg.in/src-d/go-git.v4"
+	"gopkg.in/src-d/go-git.v4/plumbing"
 	"gopkg.in/src-d/go-git.v4/plumbing/object"
 )
 
-func CreateHistory(path string) (*objects.History, error) {
-	repo, err := git.PlainOpen(path)
+type node struct {
+	parents  []*node
+	commit   *object.Commit
+	children []*node
+}
+
+func CreateHistory(repoPath string, start, end string, withTests bool) (*objects.History, error) {
+	repo, err := git.PlainOpen(repoPath)
 	if err != nil {
 		return nil, err
 	}
-	iter, _ := repo.CommitObjects()
-	data := make(map[*object.Commit]map[string]*ast.FuncDecl)
-	iter.ForEach(func(commit *object.Commit) error {
-		files, _ := commit.Files()
-		data[commit] = make(map[string]*ast.FuncDecl)
+	commitIterator, _ := repo.CommitObjects()
+	_, err = repo.CommitObject(plumbing.NewHash(start))
+	if err != nil {
+		ref, err := repo.Reference(plumbing.ReferenceName("refs/heads/"+start), false)
+		if err != nil {
+			return nil, err
+		}
+		start = ref.Hash().String()
+	}
+
+	commitsData := make(map[string]*object.Commit)
+	commitIterator.ForEach(func(commit *object.Commit) error {
+		commitsData[commit.Hash.String()] = commit
+		return nil
+	})
+	historyLine := createHistoryLine(commitsData, start, end)
+	history := objects.NewHistory()
+
+	for _, commit := range historyLine {
+		files, err := commit.Files()
+		if err != nil {
+			return nil, err
+		}
 		files.ForEach(func(f *object.File) error {
-			if strings.HasSuffix(f.Name, ".go") {
+			if strings.HasSuffix(f.Name, ".go") && (!strings.HasSuffix(f.Name, "_test.go") || withTests) {
 				rd, err := f.Blob.Reader()
 				if err != nil {
 					return err
@@ -33,31 +59,76 @@ func CreateHistory(path string) (*objects.History, error) {
 				if err != nil {
 					fmt.Println(err)
 				}
-				functions, err := GetFunctions(string(body))
+				functions, err := GetFunctions(string(body), path.Dir(f.Name))
 				if err != nil {
 					return err
 				}
-				for k, v := range functions {
-					data[commit][k] = v
+				for funcID, funcDecl := range functions {
+					funcHistory, ok := history.Data[funcID]
+					if !ok {
+						funcHistory = &objects.FunctionHistory{}
+						history.Data[funcID] = funcHistory
+					}
+					text := string(body[funcDecl.Pos()-1 : funcDecl.End()-1])
+					funcHistory.History = append(funcHistory.History,
+						&objects.HistoryElement{
+							Func:   funcDecl,
+							Commit: commit,
+							Text:   text,
+							Offset: int(funcDecl.Pos()),
+						})
 				}
 			}
 			return nil
 		})
-		return nil
-	})
-	return nil, nil
+	}
+	return history, nil
 }
 
-func GetFunctions(src string) (map[string]*ast.FuncDecl, error) {
-	fset := token.NewFileSet()
-	f, err := parser.ParseFile(fset, "", src, parser.AllErrors)
+func createHistoryLine(commits map[string]*object.Commit, start, end string) (history []*object.Commit) {
+	rootNode, ok := commits[start]
+	if !ok {
+		return
+	}
+	var queue [][]*object.Commit
+	queue = append(queue, []*object.Commit{rootNode})
+	visited := make(map[string]bool)
+	for len(queue) > 0 {
+		filePath := queue[0]
+		queue = queue[1:]
+		history = filePath
+		elem := filePath[len(filePath)-1]
+		if _, ok := visited[elem.Hash.String()]; ok {
+			continue
+		}
+		visited[elem.Hash.String()] = true
+
+		for _, hash := range elem.ParentHashes {
+			commit := commits[hash.String()]
+			if commit != nil {
+				if hash.String() == end {
+					return append(filePath, commit)
+				}
+				newPath := make([]*object.Commit, len(filePath))
+				copy(newPath, filePath)
+				newPath = append(newPath, commit)
+				queue = append(queue, newPath)
+			}
+		}
+	}
+	return
+}
+
+func GetFunctions(src, pack string) (map[string]*ast.FuncDecl, error) {
+	fileSet := token.NewFileSet()
+	f, err := parser.ParseFile(fileSet, "", src, parser.AllErrors)
 	if err != nil {
 		return nil, err
 	}
 	functions := make(map[string]*ast.FuncDecl)
 	for _, decl := range f.Decls {
 		if function, ok := decl.(*ast.FuncDecl); ok {
-			functions[function.Name.Name] = function
+			functions[pack+"."+function.Name.Name] = function
 		}
 	}
 	return functions, nil

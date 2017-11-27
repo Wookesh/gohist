@@ -36,6 +36,9 @@ const (
 )
 
 func Diff(a, b ast.Node, mode Mode) Coloring {
+	if mode == ModeNew && a == nil {
+		return Coloring{NewColorChange(ColorNew, b)}
+	}
 	if mode == ModeOld && b != nil {
 		a, b = b, a
 	}
