@@ -8,7 +8,7 @@ import (
 )
 
 var (
-	projectPath = flag.String("path", "C:/Go/projects/src/github.com/wookesh/gohist", "")
+	projectPath = flag.String("path", "/home/wookesh/GoProjects/src/github.com/wookesh/gohist", "")
 	start       = flag.String("start", "master", "")
 	end         = flag.String("end", "", "")
 )

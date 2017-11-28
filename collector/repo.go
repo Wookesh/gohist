@@ -45,12 +45,14 @@ func CreateHistory(repoPath string, start, end string, withTests bool) (*objects
 	history := objects.NewHistory()
 
 	for _, commit := range historyLine {
+		fmt.Println(commit.Hash)
 		files, err := commit.Files()
 		if err != nil {
 			return nil, err
 		}
 		files.ForEach(func(f *object.File) error {
 			if strings.HasSuffix(f.Name, ".go") && (!strings.HasSuffix(f.Name, "_test.go") || withTests) {
+				fmt.Println("\t", f.Name)
 				rd, err := f.Blob.Reader()
 				if err != nil {
 					return err
@@ -129,10 +131,30 @@ func GetFunctions(src, pack string) (map[string]*ast.FuncDecl, error) {
 		return nil, err
 	}
 	functions := make(map[string]*ast.FuncDecl)
+	variables := make(map[string]*objects.Variable)
 	for _, decl := range f.Decls {
 		if function, ok := decl.(*ast.FuncDecl); ok {
 			functions[pack+"."+function.Name.Name] = function
 		}
+		if v, ok := decl.(*ast.GenDecl); ok {
+			switch v.Tok {
+			case token.VAR:
+				for _, spec := range v.Specs {
+					value, _ := spec.(*ast.ValueSpec)
+					for i := 0; i < len(value.Names); i++ {
+						v := &objects.Variable{Name: value.Names[i], Type: value.Type}
+						if len(value.Values) > 0 {
+							v.Expr = value.Values[i]
+						}
+						variables[v.Name.Name] = v
+					}
+				}
+			case token.TYPE:
+			case token.IMPORT:
+			case token.CONST:
+			}
+		}
 	}
+	_ = variables
 	return functions, nil
 }

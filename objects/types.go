@@ -27,6 +27,12 @@ type HistoryElement struct {
 	Offset int
 }
 
+type Variable struct {
+	Name *ast.Ident
+	Type ast.Expr
+	Expr ast.Expr
+}
+
 //type Commit struct {
 //	SHA       string
 //	Author    string

@@ -5,7 +5,20 @@ import (
 	"log"
 	"reflect"
 	"sort"
+	"go/token"
 )
+
+type context struct {
+	a nodeContext
+	b nodeContext
+	gobal vars
+}
+
+type nodeContext struct {
+	vars vars
+}
+
+type vars map[string][]token.Pos
 
 func Diff(a, b ast.Node, mode Mode) Coloring {
 	if mode == ModeNew && a == nil {
