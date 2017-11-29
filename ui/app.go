@@ -1,13 +1,13 @@
 package ui
 
 import (
-	"fmt"
 	"html/template"
 	"io"
 	"net/http"
 	"sort"
 	"strconv"
 
+	"github.com/Sirupsen/logrus"
 	"github.com/labstack/echo"
 	"github.com/wookesh/gohist/diff"
 	"github.com/wookesh/gohist/objects"
@@ -110,23 +110,29 @@ func color(s string, coloring diff.Coloring, offset int) template.HTML {
 	if len(coloring) == 0 {
 		return template.HTML(s)
 	}
-	fmt.Println(coloring, offset)
+	logrus.Debugln("color:")
+	logrus.Debugln("color:", coloring, offset)
 	current := 0
 	var hasColoring bool
 	var result string
+	logrus.Debugln("color:", "next coloring:", current, coloring[current])
 	for i := 0; i < len(s); i++ {
 		if current < len(coloring) {
 			if !hasColoring && int(coloring[current].Pos) <= i+offset {
+				logrus.Debugln("color:", "changing color:", toColor(coloring[current].Color), i+offset)
 				hasColoring = true
 				result += `<span style="color: ` + toColor(coloring[current].Color) + `;">`
 			}
 
 			if hasColoring && int(coloring[current].End) < i+offset {
+				logrus.Debugln("color:", "removing color:", i+offset)
 				result += `</span>`
 				if current < len(coloring) {
 					current++
+					logrus.Debugln("color:", "next coloring:", current)
 				}
-				if current < len(coloring) && int(coloring[current].Pos) > i+offset {
+				if current < len(coloring) && int(coloring[current].Pos) <= i+offset {
+					logrus.Debugln("color:", "changing color:", toColor(coloring[current].Color), i+offset)
 					result += `<span style="color: ` + toColor(coloring[current].Color) + `;">`
 				} else {
 					hasColoring = false

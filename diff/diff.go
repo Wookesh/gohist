@@ -2,15 +2,16 @@ package diff
 
 import (
 	"go/ast"
-	"log"
+	"go/token"
 	"reflect"
 	"sort"
-	"go/token"
+
+	"github.com/Sirupsen/logrus"
 )
 
 type context struct {
-	a nodeContext
-	b nodeContext
+	a     nodeContext
+	b     nodeContext
 	gobal vars
 }
 
@@ -21,6 +22,7 @@ type nodeContext struct {
 type vars map[string][]token.Pos
 
 func Diff(a, b ast.Node, mode Mode) Coloring {
+	logrus.Debugln("Diff:", mode, "\n")
 	if mode == ModeNew && a == nil {
 		return Coloring{NewColorChange(ColorNew, b)}
 	}
@@ -31,6 +33,7 @@ func Diff(a, b ast.Node, mode Mode) Coloring {
 }
 
 func diff(a, b ast.Node, mode Mode) Coloring {
+	logrus.Debugln("diff:", a, b)
 	var coloring Coloring
 	switch t := a.(type) {
 	case ast.Decl:
@@ -42,6 +45,7 @@ func diff(a, b ast.Node, mode Mode) Coloring {
 		//case ast.Decl:
 		//	diffDecl(t, b, mode)
 	default:
+		logrus.Errorln("diff:", "not implemented case", reflect.TypeOf(a))
 		coloring = Coloring{NewColorChange(ColorSame, a)}
 	}
 
@@ -76,23 +80,43 @@ func diffStmt(a ast.Stmt, b ast.Node, mode Mode) Coloring {
 	switch t := a.(type) {
 	case *ast.BlockStmt:
 		return diffBlockStmt(t, b, mode)
+	case *ast.ForStmt:
+		return diffForStmt(t, b, mode)
 	}
 	return nil
 }
 
 func diffBlockStmt(a *ast.BlockStmt, bNode ast.Node, mode Mode) Coloring {
+	logrus.Debugln("diffBlockStmt:", a, bNode)
 	b, ok := bNode.(*ast.BlockStmt)
 	if !ok {
 		return Coloring{NewColorChange(mode.ToColor(), a)}
 	}
 
 	var coloring Coloring
-	for aStmt, bStmt := range matchStmts(a.List, b.List) {
+	for _, match := range matchStmts(a.List, b.List) {
+		aStmt, bStmt := match.prev, match.new
 		if bStmt == nil {
+			logrus.Debugln("diffBlockStmt:", "unmatched:", aStmt, reflect.TypeOf(aStmt))
 			coloring = append(coloring, NewColorChange(mode.ToColor(), aStmt))
+		} else {
+			coloring = append(coloring, diff(aStmt, bStmt, mode)...)
 		}
-		coloring = append(coloring, diff(aStmt, bStmt, mode)...)
 	}
+	return coloring
+}
+
+func diffForStmt(a *ast.ForStmt, bNode ast.Node, mode Mode) Coloring {
+	logrus.Debugln("diffForStmt:", a, bNode)
+	b, ok := bNode.(*ast.ForStmt)
+	if !ok {
+		return Coloring{NewColorChange(mode.ToColor(), a)}
+	}
+	var coloring Coloring
+	coloring = append(coloring, diff(a.Init, b.Init, mode)...)
+	coloring = append(coloring, diff(a.Cond, b.Cond, mode)...)
+	coloring = append(coloring, diff(a.Post, b.Post, mode)...)
+	coloring = append(coloring, diff(a.Body, b.Body, mode)...)
 	return coloring
 }
 
@@ -116,14 +140,19 @@ func (e matchingElems) Swap(i, j int) {
 	e[i], e[j] = e[j], e[i]
 }
 
-func matchStmts(a, b []ast.Stmt) map[ast.Stmt]ast.Stmt {
+type matching struct {
+	prev ast.Stmt
+	new  ast.Stmt
+}
+
+func matchStmts(a, b []ast.Stmt) []matching {
 	matched := make(map[ast.Stmt]ast.Stmt)
 	var matchingList matchingElems
 	for _, aStmt := range a {
 		for _, bStmt := range b {
 			score := compare(aStmt, bStmt)
+			logrus.Debugln("matchStmts:", reflect.TypeOf(aStmt), aStmt, score, reflect.TypeOf(bStmt), bStmt)
 			if score > 0.0 {
-				log.Println("matchStmts:", reflect.TypeOf(aStmt), aStmt, score, reflect.TypeOf(bStmt), bStmt)
 				matchingList = append(matchingList, matchingElem{aStmt, score, bStmt})
 			}
 		}
@@ -143,10 +172,10 @@ func matchStmts(a, b []ast.Stmt) map[ast.Stmt]ast.Stmt {
 		matched[elem.stmt] = elem.match
 	}
 
+	var result []matching
 	for _, aStmt := range a {
-		if _, ok := matched[aStmt]; !ok {
-			matched[aStmt] = nil
-		}
+		bStmt := matched[aStmt]
+		result = append(result, matching{prev: aStmt, new: bStmt})
 	}
-	return matched
+	return result
 }

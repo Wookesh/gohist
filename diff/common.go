@@ -3,6 +3,8 @@ package diff
 import (
 	"go/ast"
 	"go/token"
+
+	"github.com/Sirupsen/logrus"
 )
 
 type Color int
@@ -20,6 +22,17 @@ const (
 	ModeNew Mode = iota
 	ModeOld
 )
+
+func (m Mode) String() string {
+	switch m {
+	case ModeNew:
+		return "ModeNew"
+	case ModeOld:
+		return "ModeOld"
+	default:
+		return ""
+	}
+}
 
 func (m Mode) ToColor() Color {
 	switch m {
@@ -39,6 +52,7 @@ type ColorChange struct {
 }
 
 func NewColorChange(color Color, node ast.Node) ColorChange {
+	logrus.Debugln("NewColorChange:", color, node, node.Pos(), node.End())
 	return ColorChange{color, node.Pos(), node.End()}
 }
 

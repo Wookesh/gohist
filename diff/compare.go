@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"go/ast"
 	"reflect"
+
+	"github.com/Sirupsen/logrus"
 )
 
 func compare(aNode, bNode ast.Node) (score float64) {
@@ -14,11 +16,10 @@ func compare(aNode, bNode ast.Node) (score float64) {
 			score += 1
 		}
 	case *ast.DeclStmt:
-		b, ok := bNode.(*ast.DeclStmt)
-		if !ok {
-			return
+		_, ok := bNode.(*ast.DeclStmt)
+		if ok {
+			score += 1 //compare(a.Decl, b.Decl)
 		}
-		score += compare(a.Decl, b.Decl)
 	case *ast.EmptyStmt:
 		_, ok := bNode.(*ast.EmptyStmt)
 		if ok {
@@ -95,22 +96,25 @@ func compare(aNode, bNode ast.Node) (score float64) {
 			score += 1
 		}
 	case *ast.ForStmt:
-		_, ok := bNode.(*ast.ForStmt)
+		b, ok := bNode.(*ast.ForStmt)
 		if ok {
 			score += 1
+			fmt.Println("for:", a, b)
 		}
 	case *ast.RangeStmt:
-		_, ok := bNode.(*ast.RangeStmt)
+		b, ok := bNode.(*ast.RangeStmt)
 		if ok {
 			score += 1
+			fmt.Println("range:", a, b)
 		}
 	default:
-		fmt.Println("compare:", "unimplemented case: ", reflect.TypeOf(a))
+		logrus.Errorln("compare:", "unimplemented case: ", reflect.TypeOf(a))
 	}
 	return
 }
 
 func compareExpr(aExpr, bExpr ast.Expr) (score float64) {
+	logrus.Debugln("compareExpr:", aExpr, reflect.TypeOf(aExpr), bExpr, reflect.TypeOf(bExpr))
 	switch a := aExpr.(type) {
 	case *ast.CallExpr:
 		b, ok := bExpr.(*ast.CallExpr)

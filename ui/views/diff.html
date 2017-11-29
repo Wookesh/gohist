@@ -22,6 +22,9 @@
 <body>
 <div class="container">
     <div class="row">
+        <a href="/">Home</a>
+    </div>
+    <div class="row">
         <div class="col-md-1">{{if gt .pos 0}}<a href="?pos={{prev (.pos)}}">Prev</a>{{end}}</div>
         <div class="col-md-10">
         {{range $i, $e := .diffView.History.History}}

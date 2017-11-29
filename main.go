@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 
+	"github.com/Sirupsen/logrus"
 	"github.com/wookesh/gohist/collector"
 	"github.com/wookesh/gohist/ui"
 )
@@ -12,6 +13,10 @@ var (
 	start       = flag.String("start", "master", "")
 	end         = flag.String("end", "", "")
 )
+
+func init() {
+	logrus.SetLevel(logrus.DebugLevel)
+}
 
 func main() {
 	flag.Parse()

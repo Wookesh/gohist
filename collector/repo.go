@@ -139,22 +139,27 @@ func GetFunctions(src, pack string) (map[string]*ast.FuncDecl, error) {
 		if v, ok := decl.(*ast.GenDecl); ok {
 			switch v.Tok {
 			case token.VAR:
-				for _, spec := range v.Specs {
-					value, _ := spec.(*ast.ValueSpec)
-					for i := 0; i < len(value.Names); i++ {
-						v := &objects.Variable{Name: value.Names[i], Type: value.Type}
-						if len(value.Values) > 0 {
-							v.Expr = value.Values[i]
-						}
-						variables[v.Name.Name] = v
-					}
-				}
+				gatherVariables(v, variables)
 			case token.TYPE:
 			case token.IMPORT:
 			case token.CONST:
+				gatherVariables(v, variables)
 			}
 		}
 	}
 	_ = variables
 	return functions, nil
+}
+
+func gatherVariables(v *ast.GenDecl, variables map[string]*objects.Variable) {
+	for _, spec := range v.Specs {
+		value, _ := spec.(*ast.ValueSpec)
+		for i := 0; i < len(value.Names); i++ {
+			v := &objects.Variable{Name: value.Names[i], Type: value.Type}
+			if len(value.Values) > 0 {
+				v.Expr = value.Values[i]
+			}
+			variables[v.Name.Name] = v
+		}
+	}
 }
