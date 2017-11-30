@@ -192,6 +192,18 @@ func compare(aNode, bNode ast.Node) (score float64) {
 			}
 			score += (compare(a.X, b.X) + compare(a.Y, b.Y)) / 3
 		}
+	case *ast.ArrayType:
+		b, ok := bNode.(*ast.ArrayType)
+		if ok {
+			score += compare(a.Elt, b.Elt) * (1 / math.Phi)
+			if a.Len != nil {
+				score += compare(a.Len, b.Len) * (1 - (1 / math.Phi))
+			} else {
+				if b.Len == nil {
+					score += 1 - 1/math.Phi
+				}
+			}
+		}
 	default:
 		logrus.Errorln("compare:", "unimplemented case: ", reflect.TypeOf(a))
 	}
