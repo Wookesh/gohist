@@ -6,6 +6,7 @@ import (
 	"reflect"
 
 	"github.com/Sirupsen/logrus"
+	"github.com/wookesh/gohist/util"
 )
 
 func compare(aNode, bNode ast.Node) (score float64) {
@@ -46,9 +47,17 @@ func compare(aNode, bNode ast.Node) (score float64) {
 			score += 1
 		}
 	case *ast.AssignStmt:
-		_, ok := bNode.(*ast.AssignStmt)
+		b, ok := bNode.(*ast.AssignStmt)
 		if ok {
-			score += 1
+			minLhs := util.IntMin(len(a.Lhs), len(b.Lhs))
+			for i := 0; i < minLhs; i++ {
+				score += compareExpr(a.Lhs[i], b.Lhs[i])
+			}
+			minRhs := util.IntMin(len(a.Rhs), len(b.Rhs))
+			for i := 0; i < minRhs; i++ {
+				score += compareExpr(a.Rhs[i], b.Rhs[i])
+			}
+			score = score / float64(minRhs+minLhs)
 		}
 	case *ast.GoStmt:
 		_, ok := bNode.(*ast.GoStmt)

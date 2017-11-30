@@ -3,6 +3,7 @@ package diff
 import (
 	"go/ast"
 	"go/token"
+	"math"
 	"reflect"
 	"sort"
 
@@ -152,7 +153,7 @@ func matchStmts(a, b []ast.Stmt) []matching {
 		for _, bStmt := range b {
 			score := compare(aStmt, bStmt)
 			logrus.Debugln("matchStmts:", reflect.TypeOf(aStmt), aStmt, score, reflect.TypeOf(bStmt), bStmt)
-			if score > 0.0 {
+			if score > 1/math.Phi {
 				matchingList = append(matchingList, matchingElem{aStmt, score, bStmt})
 			}
 		}
