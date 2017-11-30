@@ -24,6 +24,15 @@ func diffExpr(aExpr ast.Expr, bNode ast.Node, mode Mode) Coloring {
 		return diffBinaryExpr(a, bExpr, mode)
 	case *ast.StarExpr:
 		return diffStarExpr(a, bExpr, mode)
+	case *ast.BasicLit:
+		return diffBasicLit(a, bExpr, mode)
+	case *ast.TypeAssertExpr:
+		return diffTypeAssertExpr(a, bExpr, mode)
+	case *ast.CompositeLit:
+		return diffCompositeLit(a, bExpr, mode)
+	case *ast.FuncType:
+		return diffFuncType(a, bExpr, mode)
+
 	default:
 		logrus.Errorln("diffExpr:", "unimplemented case:", reflect.TypeOf(a))
 		return Coloring{NewColorChange(mode.ToColor(), aExpr)}
@@ -97,4 +106,53 @@ func diffStarExpr(a *ast.StarExpr, bExpr ast.Expr, mode Mode) (coloring Coloring
 		return Coloring{NewColorChange(mode.ToColor(), a)}
 	}
 	return diff(a.X, b.X, mode)
+}
+
+func diffBasicLit(a *ast.BasicLit, bExpr ast.Expr, mode Mode) (coloring Coloring) {
+	logrus.Debugln("diffBasicLit:", a, bExpr)
+	b, ok := bExpr.(*ast.BasicLit)
+	if !ok || a.Kind != b.Kind || a.Value != b.Value {
+		return Coloring{NewColorChange(mode.ToColor(), a)}
+	}
+	return
+}
+
+func diffTypeAssertExpr(a *ast.TypeAssertExpr, bExpr ast.Expr, mode Mode) (coloring Coloring) {
+	logrus.Debugln("diffTypeAssertExpr:", a, bExpr)
+	b, ok := bExpr.(*ast.TypeAssertExpr)
+	if !ok {
+		return Coloring{NewColorChange(mode.ToColor(), a)}
+	}
+	coloring = append(coloring, diff(a.X, b.X, mode)...)
+	coloring = append(coloring, diff(a.Type, b.Type, mode)...)
+	return
+}
+
+func diffCompositeLit(a *ast.CompositeLit, bExpr ast.Expr, mode Mode) (coloring Coloring) {
+	logrus.Debugln("diffCompositeLit:", a, bExpr)
+	b, ok := bExpr.(*ast.CompositeLit)
+	if !ok {
+		return Coloring{NewColorChange(mode.ToColor(), a)}
+	}
+	coloring = append(coloring, diff(a.Type, b.Type, mode)...)
+	for _, match := range matchExprs(a.Elts, b.Elts) {
+		if match.next == nil {
+			logrus.Debugln("diffCompositeLit:", "unmatched:", match.prev, reflect.TypeOf(match.prev))
+			coloring = append(coloring, NewColorChange(mode.ToColor(), match.prev))
+		} else {
+			coloring = append(coloring, diff(match.prev, match.next, mode)...)
+		}
+	}
+	return
+}
+
+func diffFuncType(a *ast.FuncType, bExpr ast.Expr, mode Mode) (coloring Coloring) {
+	logrus.Debugln("diffFuncType:", a, bExpr)
+	b, ok := bExpr.(*ast.FuncType)
+	if !ok {
+		return Coloring{NewColorChange(mode.ToColor(), a)}
+	}
+	coloring = append(coloring, diff(a.Params, b.Params, mode)...)
+	coloring = append(coloring, diff(a.Results, b.Results, mode)...)
+	return
 }

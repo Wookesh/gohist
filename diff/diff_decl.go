@@ -14,10 +14,14 @@ func diffDecl(a ast.Decl, b ast.Node, mode Mode) Coloring {
 	return nil
 }
 
-func diffFuncDecl(a *ast.FuncDecl, bNode ast.Node, mode Mode) Coloring {
+func diffFuncDecl(a *ast.FuncDecl, bNode ast.Node, mode Mode) (coloring Coloring) {
 	b, ok := bNode.(*ast.FuncDecl)
 	if !ok {
 		return Coloring{NewColorChange(mode.ToColor(), a)}
 	}
-	return diff(a.Body, b.Body, mode)
+	coloring = append(coloring, diff(a.Type, b.Type, mode)...)
+	coloring = append(coloring, diff(a.Name, b.Name, mode)...)
+	coloring = append(coloring, diff(a.Body, b.Body, mode)...)
+
+	return
 }

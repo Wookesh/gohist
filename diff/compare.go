@@ -133,12 +133,17 @@ func compare(aNode, bNode ast.Node) (score float64) {
 	case *ast.CaseClause:
 		b, ok := bNode.(*ast.CaseClause)
 		if ok {
-			for _, match := range matchExprs(a.List, b.List) {
-				if match.next != nil {
-					score += compare(match.prev, match.next)
+			if len(a.List) == 0 && len(b.List) == 0 {
+				score += 1
+			} else {
+				for _, match := range matchExprs(a.List, b.List) {
+					if match.next != nil {
+						score += compare(match.prev, match.next)
+					}
 				}
 				score = score / float64(util.IntMax(len(a.List), len(b.List)))
 			}
+
 		}
 	case *ast.SelectorExpr:
 		b, ok := bNode.(*ast.SelectorExpr)
@@ -148,6 +153,35 @@ func compare(aNode, bNode ast.Node) (score float64) {
 				score += 1
 			}
 			score = score / 2
+		}
+	case *ast.BasicLit:
+		b, ok := bNode.(*ast.BasicLit)
+		if ok {
+			if a.Kind == b.Kind {
+				score += 0.5
+				if a.Value == b.Value {
+					score += 0.5
+				}
+			}
+		}
+	case *ast.TypeAssertExpr:
+		b, ok := bNode.(*ast.TypeAssertExpr)
+		if ok {
+			score += compare(a.X, b.X)
+			if a.Type != nil || b.Type != nil {
+				score = (score + compare(a.Type, b.Type)) / 2
+			}
+		}
+	case *ast.CompositeLit:
+		b, ok := bNode.(*ast.CompositeLit)
+		if ok {
+			score += compare(a.Type, b.Type)
+		}
+	case *ast.Field:
+		b, ok := bNode.(*ast.Field)
+		if ok {
+			score += compare(a.Type, b.Type)
+
 		}
 	default:
 		logrus.Errorln("compare:", "unimplemented case: ", reflect.TypeOf(a))

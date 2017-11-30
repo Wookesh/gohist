@@ -82,3 +82,25 @@ func exprToNodes(l []ast.Expr) (nodes []ast.Node) {
 	}
 	return
 }
+
+func matchFields(a, b []*ast.Field) []matching {
+	return matchNodes(fieldToNodes(a), fieldToNodes(b), "matchFields")
+}
+
+func fieldToNodes(l []*ast.Field) (nodes []ast.Node) {
+	for _, e := range l {
+		nodes = append(nodes, e)
+	}
+	return
+}
+
+func matchIdents(a, b []*ast.Ident) []matching {
+	return matchNodes(identToNodes(a), identToNodes(b), "matchIdents")
+}
+
+func identToNodes(l []*ast.Ident) (nodes []ast.Node) {
+	for _, e := range l {
+		nodes = append(nodes, e)
+	}
+	return
+}

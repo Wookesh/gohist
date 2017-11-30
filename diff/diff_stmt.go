@@ -25,8 +25,14 @@ func diffStmt(aStmt ast.Stmt, bNode ast.Node, mode Mode) Coloring {
 		return diffAssignStmt(a, b, mode)
 	case *ast.SwitchStmt:
 		return diffSwitchStmt(a, b, mode)
+	case *ast.TypeSwitchStmt:
+		return diffTypeSwitchStmt(a, b, mode)
 	case *ast.CaseClause:
 		return diffCaseClause(a, b, mode)
+	case *ast.DeclStmt:
+		return diffDeclStmt(a, b, mode)
+	case *ast.ReturnStmt:
+		return diffReturnStmt(a, b, mode)
 	default:
 		logrus.Errorln("diffStmt:", "not implemented case", reflect.TypeOf(a))
 		return Coloring{NewColorChange(mode.ToColor(), a)}
@@ -123,6 +129,7 @@ func diffSwitchStmt(a *ast.SwitchStmt, bNode ast.Node, mode Mode) (coloring Colo
 		return Coloring{NewColorChange(mode.ToColor(), a)}
 	}
 	coloring = append(coloring, diff(a.Init, b.Init, mode)...)
+	coloring = append(coloring, diff(a.Tag, b.Tag, mode)...)
 	coloring = append(coloring, diff(a.Body, b.Body, mode)...)
 
 	return
@@ -149,5 +156,43 @@ func diffCaseClause(a *ast.CaseClause, bNode ast.Node, mode Mode) (coloring Colo
 		}
 	}
 
+	return
+}
+
+func diffDeclStmt(a *ast.DeclStmt, bNode ast.Node, mode Mode) (coloring Coloring) {
+	logrus.Debugln("diffDeclStmt:", a, bNode)
+	b, ok := bNode.(*ast.DeclStmt)
+	if !ok {
+		return Coloring{NewColorChange(mode.ToColor(), a)}
+	}
+	return diffDecl(a.Decl, b.Decl, mode)
+}
+
+func diffTypeSwitchStmt(a *ast.TypeSwitchStmt, bNode ast.Node, mode Mode) (coloring Coloring) {
+	logrus.Debugln("diffTypeSwitchStmt:", a, bNode)
+	b, ok := bNode.(*ast.TypeSwitchStmt)
+	if !ok {
+		return Coloring{NewColorChange(mode.ToColor(), a)}
+	}
+
+	coloring = append(coloring, diff(a.Assign, b.Assign, mode)...)
+	coloring = append(coloring, diff(a.Init, b.Init, mode)...)
+	coloring = append(coloring, diff(a.Body, b.Body, mode)...)
+	return
+}
+
+func diffReturnStmt(a *ast.ReturnStmt, bNode ast.Node, mode Mode) (coloring Coloring) {
+	logrus.Debugln("diffReturnStmt:", a, bNode)
+	b, ok := bNode.(*ast.ReturnStmt)
+	if !ok {
+		return Coloring{NewColorChange(mode.ToColor(), a)}
+	}
+	for _, match := range matchExprs(a.Results, b.Results) {
+		if match.next == nil {
+			coloring = append(coloring, NewColorChange(mode.ToColor(), match.prev))
+		} else {
+			coloring = append(coloring, diff(match.prev, match.next, mode)...)
+		}
+	}
 	return
 }
