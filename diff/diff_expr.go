@@ -36,6 +36,12 @@ func diffExpr(aExpr ast.Expr, bNode ast.Node, mode Mode) Coloring {
 		return diffUnaryExpr(a, bExpr, mode)
 	case *ast.ArrayType:
 		return diffArrayType(a, bExpr, mode)
+	case *ast.FuncLit:
+		return diffFuncLit(a, bExpr, mode)
+	case *ast.IndexExpr:
+		return diffIndexExpr(a, bExpr, mode)
+	case *ast.MapType:
+		return diffMapType(a, bExpr, mode)
 	default:
 		logrus.Errorln("diffExpr:", "unimplemented case:", reflect.TypeOf(a))
 		return Coloring{NewColorChange(mode.ToColor(), aExpr)}
@@ -178,5 +184,38 @@ func diffArrayType(a *ast.ArrayType, bExpr ast.Expr, mode Mode) (coloring Colori
 	}
 	coloring = append(coloring, diff(a.Len, b.Len, mode)...)
 	coloring = append(coloring, diff(a.Elt, b.Elt, mode)...)
+	return
+}
+
+func diffFuncLit(a *ast.FuncLit, bExpr ast.Expr, mode Mode) (coloring Coloring) {
+	logrus.Debugln("diffFuncLit:", a, bExpr)
+	b, ok := bExpr.(*ast.FuncLit)
+	if !ok {
+		return Coloring{NewColorChange(mode.ToColor(), a)}
+	}
+	coloring = append(coloring, diff(a.Type, b.Type, mode)...)
+	coloring = append(coloring, diff(a.Body, b.Body, mode)...)
+	return
+}
+
+func diffIndexExpr(a *ast.IndexExpr, bExpr ast.Expr, mode Mode) (coloring Coloring) {
+	logrus.Debugln("diffIndexExpr:", a, bExpr)
+	b, ok := bExpr.(*ast.IndexExpr)
+	if !ok {
+		return Coloring{NewColorChange(mode.ToColor(), a)}
+	}
+	coloring = append(coloring, diff(a.X, b.X, mode)...)
+	coloring = append(coloring, diff(a.Index, b.Index, mode)...)
+	return
+}
+
+func diffMapType(a *ast.MapType, bExpr ast.Expr, mode Mode) (coloring Coloring) {
+	logrus.Debugln("diffMapType:", a, bExpr)
+	b, ok := bExpr.(*ast.MapType)
+	if !ok {
+		return Coloring{NewColorChange(mode.ToColor(), a)}
+	}
+	coloring = append(coloring, diff(a.Key, b.Key, mode)...)
+	coloring = append(coloring, diff(a.Value, b.Value, mode)...)
 	return
 }

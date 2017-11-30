@@ -204,6 +204,41 @@ func compare(aNode, bNode ast.Node) (score float64) {
 				}
 			}
 		}
+	case *ast.FuncLit:
+		b, ok := bNode.(*ast.FuncLit)
+		if ok {
+			score += compare(a.Type, b.Type) * (1 - 1/math.Phi)
+			score += compare(a.Body, b.Body) * (1 / math.Phi)
+		}
+	case *ast.FuncType:
+		b, ok := bNode.(*ast.FuncType)
+		if ok {
+			score += compare(a.Params, b.Params) / 2
+			score += compare(a.Results, b.Results) / 2
+		}
+	case *ast.FieldList:
+		b, ok := bNode.(*ast.FieldList)
+		if ok {
+			max := util.IntMax(len(a.List), len(b.List))
+			for _, match := range matchFields(a.List, b.List) {
+				if match.next != nil {
+					score += 1
+				}
+			}
+			score = score / float64(max)
+		}
+	case *ast.IndexExpr:
+		b, ok := bNode.(*ast.IndexExpr)
+		if ok {
+			score += compare(a.X, b.X) * 1 / math.Phi
+			score += compare(a.Index, b.Index) * (1 - 1/math.Phi)
+		}
+	case *ast.MapType:
+		b, ok := bNode.(*ast.MapType)
+		if ok {
+			score += compare(a.Key, b.Key) / 2
+			score += compare(a.Value, b.Value) / 2
+		}
 	default:
 		logrus.Errorln("compare:", "unimplemented case: ", reflect.TypeOf(a))
 	}
