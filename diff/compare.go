@@ -18,9 +18,9 @@ func compare(aNode, bNode ast.Node) (score float64) {
 			score += 1
 		}
 	case *ast.DeclStmt:
-		_, ok := bNode.(*ast.DeclStmt)
+		b, ok := bNode.(*ast.DeclStmt)
 		if ok {
-			score += 1 //compare(a.Decl, b.Decl)
+			score += compare(a.Decl, b.Decl)
 		}
 	case *ast.EmptyStmt:
 		_, ok := bNode.(*ast.EmptyStmt)
@@ -30,7 +30,7 @@ func compare(aNode, bNode ast.Node) (score float64) {
 	case *ast.LabeledStmt:
 		_, ok := bNode.(*ast.LabeledStmt)
 		if ok {
-			score += 1
+			//score += 1
 		}
 	case *ast.ExprStmt:
 		b, ok := bNode.(*ast.ExprStmt)
@@ -40,12 +40,12 @@ func compare(aNode, bNode ast.Node) (score float64) {
 	case *ast.SendStmt:
 		_, ok := bNode.(*ast.SendStmt)
 		if ok {
-			score += 1
+			//score += 1
 		}
 	case *ast.IncDecStmt:
 		_, ok := bNode.(*ast.IncDecStmt)
 		if ok {
-			score += 1
+			//score += 1
 		}
 	case *ast.AssignStmt:
 		b, ok := bNode.(*ast.AssignStmt)
@@ -63,57 +63,91 @@ func compare(aNode, bNode ast.Node) (score float64) {
 	case *ast.GoStmt:
 		_, ok := bNode.(*ast.GoStmt)
 		if ok {
-			score += 1
+			//score += 1
 		}
 	case *ast.DeferStmt:
 		_, ok := bNode.(*ast.DeferStmt)
 		if ok {
-			score += 1
+			//score += 1
 		}
 	case *ast.ReturnStmt:
-		_, ok := bNode.(*ast.ReturnStmt)
+		b, ok := bNode.(*ast.ReturnStmt)
 		if ok {
-			score += 1
+			if len(a.Results) == 0 && len(b.Results) == 0 {
+				score = 1
+			} else {
+				max := util.IntMax(len(a.Results), len(b.Results))
+				for _, match := range matchExprs(a.Results, b.Results) {
+					if match.next != nil {
+						score += compare(match.prev, match.next) / float64(max)
+					}
+				}
+			}
 		}
 	case *ast.BranchStmt:
 		_, ok := bNode.(*ast.BranchStmt)
 		if ok {
-			score += 1
+			//score += 1
 		}
 	case *ast.BlockStmt:
-		_, ok := bNode.(*ast.BlockStmt)
+		b, ok := bNode.(*ast.BlockStmt)
 		if ok {
-			score += 1
+			max := util.IntMax(len(a.List), len(b.List))
+			for _, match := range matchStmts(a.List, b.List) {
+				if match.next != nil {
+					score += compare(match.prev, match.next) / float64(max)
+				}
+			}
+			logrus.Info("BlockStmt", a, b, score)
 		}
 	case *ast.IfStmt:
-		_, ok := bNode.(*ast.IfStmt)
+		b, ok := bNode.(*ast.IfStmt)
 		if ok {
-			score += 1
+			parts := 2.0
+			if a.Init != nil {
+				parts++
+				score += compare(a.Init, b.Init)
+			}
+			score += compare(a.Cond, b.Cond)
+			score += compare(a.Body, b.Body)
+			if a.Else != nil {
+				parts++
+				score += compare(a.Else, b.Else)
+			}
+			score = score / parts
+			logrus.Debugln("IfStmt:", a, b, score)
 		}
 	case *ast.SwitchStmt:
-		_, ok := bNode.(*ast.SwitchStmt)
+		b, ok := bNode.(*ast.SwitchStmt)
 		if ok {
-			score += 1
+			score += compare(a.Init, b.Init) * (1 / math.Phi)
+			score += compare(a.Body, b.Body) * (1 - 1/math.Phi)
 		}
 	case *ast.TypeSwitchStmt:
-		_, ok := bNode.(*ast.TypeSwitchStmt)
+		b, ok := bNode.(*ast.TypeSwitchStmt)
 		if ok {
-			score += 1
+			score += compare(a.Assign, b.Assign) * (1 - 1/math.Phi)
+			if a.Init != nil {
+				score += compare(a.Init, b.Init) * (1 - 1/math.Phi)
+				score = score / 2
+			}
+			score += compare(a.Body, b.Body) * (1 / math.Phi)
+			logrus.Infoln("TypeSwitchStmt:", a, b, score, compare(a.Assign, b.Assign), compare(a.Init, b.Init), compare(a.Body, b.Body))
 		}
 	case *ast.SelectStmt:
 		_, ok := bNode.(*ast.SelectStmt)
 		if ok {
-			score += 1
+			//score += 1
 		}
 	case *ast.ForStmt:
 		_, ok := bNode.(*ast.ForStmt)
 		if ok {
-			score += 1
+			//score += 1
 		}
 	case *ast.RangeStmt:
 		_, ok := bNode.(*ast.RangeStmt)
 		if ok {
-			score += 1
+			//score += 1
 		}
 	case *ast.Ident:
 		b, ok := bNode.(*ast.Ident)
@@ -238,6 +272,26 @@ func compare(aNode, bNode ast.Node) (score float64) {
 		if ok {
 			score += compare(a.Key, b.Key) / 2
 			score += compare(a.Value, b.Value) / 2
+		}
+	case *ast.GenDecl:
+		b, ok := bNode.(*ast.GenDecl)
+		if ok {
+			max := util.IntMax(len(a.Specs), len(b.Specs))
+			for _, match := range matchSpecs(a.Specs, b.Specs) {
+				if match.next != nil {
+					score += compare(match.prev, match.next) / float64(max)
+				}
+			}
+		}
+	case *ast.ValueSpec:
+		b, ok := bNode.(*ast.ValueSpec)
+		if ok {
+			max := util.IntMax(len(a.Names), len(b.Names))
+			for _, match := range matchIdents(a.Names, b.Names) {
+				if match.next != nil {
+					score += compare(match.prev, match.next) / float64(max)
+				}
+			}
 		}
 	default:
 		logrus.Errorln("compare:", "unimplemented case: ", reflect.TypeOf(a))
