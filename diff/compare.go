@@ -4,6 +4,8 @@ import (
 	"go/ast"
 	"reflect"
 
+	"math"
+
 	"github.com/Sirupsen/logrus"
 	"github.com/wookesh/gohist/util"
 )
@@ -148,11 +150,10 @@ func compare(aNode, bNode ast.Node) (score float64) {
 	case *ast.SelectorExpr:
 		b, ok := bNode.(*ast.SelectorExpr)
 		if ok {
-			score = compare(a.X, b.X)
+			score = compare(a.X, b.X) * (1 / math.Phi)
 			if a.Sel.Name == b.Sel.Name {
-				score += 1
+				score += 1 * (1 - (1 / math.Phi))
 			}
-			score = score / 2
 		}
 	case *ast.BasicLit:
 		b, ok := bNode.(*ast.BasicLit)
@@ -182,6 +183,14 @@ func compare(aNode, bNode ast.Node) (score float64) {
 		if ok {
 			score += compare(a.Type, b.Type)
 
+		}
+	case *ast.BinaryExpr:
+		b, ok := bNode.(*ast.BinaryExpr)
+		if ok {
+			if a.Op == b.Op {
+				score += 1 / 3
+			}
+			score += (compare(a.X, b.X) + compare(a.Y, b.Y)) / 3
 		}
 	default:
 		logrus.Errorln("compare:", "unimplemented case: ", reflect.TypeOf(a))

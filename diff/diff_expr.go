@@ -34,7 +34,6 @@ func diffExpr(aExpr ast.Expr, bNode ast.Node, mode Mode) Coloring {
 		return diffFuncType(a, bExpr, mode)
 	case *ast.UnaryExpr:
 		return diffUnaryExpr(a, bExpr, mode)
-
 	default:
 		logrus.Errorln("diffExpr:", "unimplemented case:", reflect.TypeOf(a))
 		return Coloring{NewColorChange(mode.ToColor(), aExpr)}
@@ -68,10 +67,10 @@ func diffSelectorExpr(a *ast.SelectorExpr, bExpr ast.Expr, mode Mode) (coloring 
 	if !ok {
 		return Coloring{NewColorChange(mode.ToColor(), a)}
 	}
+	coloring = append(coloring, diffExpr(a.X, b.X, mode)...)
 	if a.Sel.Name != b.Sel.Name {
 		coloring = append(coloring, NewColorChange(mode.ToColor(), a.Sel))
 	}
-	coloring = append(coloring, diffExpr(a.X, b.X, mode)...)
 	return
 }
 
