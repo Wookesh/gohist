@@ -32,6 +32,8 @@ func diffExpr(aExpr ast.Expr, bNode ast.Node, mode Mode) Coloring {
 		return diffCompositeLit(a, bExpr, mode)
 	case *ast.FuncType:
 		return diffFuncType(a, bExpr, mode)
+	case *ast.UnaryExpr:
+		return diffUnaryExpr(a, bExpr, mode)
 
 	default:
 		logrus.Errorln("diffExpr:", "unimplemented case:", reflect.TypeOf(a))
@@ -154,5 +156,15 @@ func diffFuncType(a *ast.FuncType, bExpr ast.Expr, mode Mode) (coloring Coloring
 	}
 	coloring = append(coloring, diff(a.Params, b.Params, mode)...)
 	coloring = append(coloring, diff(a.Results, b.Results, mode)...)
+	return
+}
+
+func diffUnaryExpr(a *ast.UnaryExpr, bExpr ast.Expr, mode Mode) (coloring Coloring) {
+	logrus.Debugln("diffUnaryExpr:", a, bExpr)
+	b, ok := bExpr.(*ast.UnaryExpr)
+	if !ok {
+		return Coloring{NewColorChange(mode.ToColor(), a)}
+	}
+	coloring = append(coloring, diff(a.X, b.X, mode)...)
 	return
 }
