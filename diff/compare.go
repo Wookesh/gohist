@@ -1,7 +1,6 @@
 package diff
 
 import (
-	"fmt"
 	"go/ast"
 	"reflect"
 
@@ -34,7 +33,7 @@ func compare(aNode, bNode ast.Node) (score float64) {
 	case *ast.ExprStmt:
 		b, ok := bNode.(*ast.ExprStmt)
 		if ok {
-			score += compareExpr(a.X, b.X)
+			score += compare(a.X, b.X)
 		}
 	case *ast.SendStmt:
 		_, ok := bNode.(*ast.SendStmt)
@@ -51,11 +50,11 @@ func compare(aNode, bNode ast.Node) (score float64) {
 		if ok {
 			minLhs := util.IntMin(len(a.Lhs), len(b.Lhs))
 			for i := 0; i < minLhs; i++ {
-				score += compareExpr(a.Lhs[i], b.Lhs[i])
+				score += compare(a.Lhs[i], b.Lhs[i])
 			}
 			minRhs := util.IntMin(len(a.Rhs), len(b.Rhs))
 			for i := 0; i < minRhs; i++ {
-				score += compareExpr(a.Rhs[i], b.Rhs[i])
+				score += compare(a.Rhs[i], b.Rhs[i])
 			}
 			score = score / float64(minRhs+minLhs)
 		}
@@ -105,49 +104,53 @@ func compare(aNode, bNode ast.Node) (score float64) {
 			score += 1
 		}
 	case *ast.ForStmt:
-		b, ok := bNode.(*ast.ForStmt)
+		_, ok := bNode.(*ast.ForStmt)
 		if ok {
 			score += 1
-			fmt.Println("for:", a, b)
 		}
 	case *ast.RangeStmt:
-		b, ok := bNode.(*ast.RangeStmt)
+		_, ok := bNode.(*ast.RangeStmt)
 		if ok {
 			score += 1
-			fmt.Println("range:", a, b)
-		}
-	default:
-		logrus.Errorln("compare:", "unimplemented case: ", reflect.TypeOf(a))
-	}
-	return
-}
-
-func compareExpr(aExpr, bExpr ast.Expr) (score float64) {
-	logrus.Debugln("compareExpr:", aExpr, reflect.TypeOf(aExpr), bExpr, reflect.TypeOf(bExpr))
-	switch a := aExpr.(type) {
-	case *ast.CallExpr:
-		b, ok := bExpr.(*ast.CallExpr)
-		if ok {
-			score = compareExpr(a.Fun, b.Fun)
-		}
-	case *ast.SelectorExpr:
-		b, ok := bExpr.(*ast.SelectorExpr)
-		if ok {
-			score = compareExpr(a.X, b.X)
-			if a.Sel.Name == b.Sel.Name {
-				score += 1
-			}
-			score = score / 2
 		}
 	case *ast.Ident:
-		b, ok := bExpr.(*ast.Ident)
+		b, ok := bNode.(*ast.Ident)
 		if ok {
 			if a.Name == b.Name {
 				score += 1
 			}
 		}
+	case *ast.CallExpr:
+		b, ok := bNode.(*ast.CallExpr)
+		if ok {
+			score += compare(a.Fun, b.Fun)
+		}
+	case *ast.StarExpr:
+		b, ok := bNode.(*ast.StarExpr)
+		if ok {
+			score += compare(a.X, b.X)
+		}
+	case *ast.CaseClause:
+		b, ok := bNode.(*ast.CaseClause)
+		if ok {
+			for _, match := range matchExprs(a.List, b.List) {
+				if match.next != nil {
+					score += compare(match.prev, match.next)
+				}
+				score = score / float64(util.IntMax(len(a.List), len(b.List)))
+			}
+		}
+	case *ast.SelectorExpr:
+		b, ok := bNode.(*ast.SelectorExpr)
+		if ok {
+			score = compare(a.X, b.X)
+			if a.Sel.Name == b.Sel.Name {
+				score += 1
+			}
+			score = score / 2
+		}
 	default:
-		fmt.Println("compareExpr:", "unimplemented case: ", reflect.TypeOf(a))
+		logrus.Errorln("compare:", "unimplemented case: ", reflect.TypeOf(a))
 	}
 	return
 }
