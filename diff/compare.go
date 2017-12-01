@@ -145,9 +145,20 @@ func compare(aNode, bNode ast.Node) (score float64) {
 			//score += 1
 		}
 	case *ast.RangeStmt:
-		_, ok := bNode.(*ast.RangeStmt)
+		b, ok := bNode.(*ast.RangeStmt)
 		if ok {
-			//score += 1
+			children := 1
+			if a.Key != nil {
+				children++
+				score += compare(a.Key, b.Key)
+			}
+			if a.Value != nil {
+				children++
+				score += compare(a.Value, b.Value)
+			}
+			score += compare(a.X, b.X)
+			score = (score * (1 - 1/math.Phi)) / float64(children)
+			score += compare(a.Body, b.Body) / math.Phi
 		}
 	case *ast.Ident:
 		b, ok := bNode.(*ast.Ident)

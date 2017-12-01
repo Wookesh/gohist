@@ -13,6 +13,7 @@ import (
 	git "gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/plumbing"
 	"gopkg.in/src-d/go-git.v4/plumbing/object"
+	"websensa.com/websensa/logger"
 )
 
 type node struct {
@@ -22,11 +23,30 @@ type node struct {
 }
 
 func CreateHistory(repoPath string, start, end string, withTests bool) (*objects.History, error) {
+	logger.Infoln(repoPath)
 	repo, err := git.PlainOpen(repoPath)
 	if err != nil {
 		return nil, err
 	}
-	commitIterator, _ := repo.CommitObjects()
+	commitIterator, err := repo.CommitObjects()
+	if err != nil {
+		return nil, err
+	}
+
+	if commitIterator == nil {
+		return nil, fmt.Errorf("commitIterator is nil!")
+	}
+
+	commitsData := make(map[string]*object.Commit)
+	commitIterator.ForEach(func(commit *object.Commit) error {
+		if commit == nil {
+			panic("commit is nil")
+			return fmt.Errorf("commit is nil")
+		}
+		commitsData[commit.Hash.String()] = commit
+		return nil
+	})
+
 	_, err = repo.CommitObject(plumbing.NewHash(start))
 	if err != nil {
 		ref, err := repo.Reference(plumbing.ReferenceName("refs/heads/"+start), false)
@@ -36,11 +56,6 @@ func CreateHistory(repoPath string, start, end string, withTests bool) (*objects
 		start = ref.Hash().String()
 	}
 
-	commitsData := make(map[string]*object.Commit)
-	commitIterator.ForEach(func(commit *object.Commit) error {
-		commitsData[commit.Hash.String()] = commit
-		return nil
-	})
 	historyLine := createHistoryLine(commitsData, start, end)
 	history := objects.NewHistory()
 
@@ -156,7 +171,7 @@ func gatherVariables(v *ast.GenDecl, variables map[string]*objects.Variable) {
 		value, _ := spec.(*ast.ValueSpec)
 		for i := 0; i < len(value.Names); i++ {
 			v := &objects.Variable{Name: value.Names[i], Type: value.Type}
-			if len(value.Values) > 0 {
+			if len(value.Values) > i {
 				v.Expr = value.Values[i]
 			}
 			variables[v.Name.Name] = v
