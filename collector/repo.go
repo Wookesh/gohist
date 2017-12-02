@@ -9,21 +9,16 @@ import (
 	"path"
 	"strings"
 
+	"github.com/Sirupsen/logrus"
+	"github.com/wookesh/gohist/diff"
 	"github.com/wookesh/gohist/objects"
 	git "gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/plumbing"
 	"gopkg.in/src-d/go-git.v4/plumbing/object"
-	"websensa.com/websensa/logger"
 )
 
-type node struct {
-	parents  []*node
-	commit   *object.Commit
-	children []*node
-}
-
 func CreateHistory(repoPath string, start, end string, withTests bool) (*objects.History, error) {
-	logger.Infoln(repoPath)
+	logrus.Infoln(repoPath)
 	repo, err := git.PlainOpen(repoPath)
 	if err != nil {
 		return nil, err
@@ -85,6 +80,12 @@ func CreateHistory(repoPath string, start, end string, withTests bool) (*objects
 					if !ok {
 						funcHistory = &objects.FunctionHistory{}
 						history.Data[funcID] = funcHistory
+					}
+					if len(funcHistory.History) > 0 {
+						last := len(funcHistory.History) - 1
+						if diff.IsSame(funcHistory.History[last].Func, funcDecl) {
+							continue
+						}
 					}
 					text := string(body[funcDecl.Pos()-1 : funcDecl.End()-1])
 					funcHistory.History = append(funcHistory.History,
