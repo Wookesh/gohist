@@ -11,6 +11,12 @@ import (
 )
 
 func compare(aNode, bNode ast.Node) (score float64) {
+	if aNode == nil {
+		if bNode == nil {
+			return 1.0
+		}
+		return 0.0
+	}
 	switch a := aNode.(type) {
 	case *ast.BadStmt:
 		_, ok := bNode.(*ast.BadStmt)
@@ -30,6 +36,7 @@ func compare(aNode, bNode ast.Node) (score float64) {
 	case *ast.LabeledStmt:
 		_, ok := bNode.(*ast.LabeledStmt)
 		if ok {
+			logrus.Errorln("unimplemented:", reflect.TypeOf(a))
 			//score += 1
 		}
 	case *ast.ExprStmt:
@@ -40,12 +47,16 @@ func compare(aNode, bNode ast.Node) (score float64) {
 	case *ast.SendStmt:
 		_, ok := bNode.(*ast.SendStmt)
 		if ok {
+			logrus.Errorln("unimplemented:", reflect.TypeOf(a))
 			//score += 1
 		}
 	case *ast.IncDecStmt:
-		_, ok := bNode.(*ast.IncDecStmt)
+		b, ok := bNode.(*ast.IncDecStmt)
 		if ok {
-			//score += 1
+			score += compare(a.X, b.X) * (1 / math.Phi)
+			if a.Tok == b.Tok {
+				score += 1 - 1/math.Phi
+			}
 		}
 	case *ast.AssignStmt:
 		b, ok := bNode.(*ast.AssignStmt)
@@ -63,11 +74,13 @@ func compare(aNode, bNode ast.Node) (score float64) {
 	case *ast.GoStmt:
 		_, ok := bNode.(*ast.GoStmt)
 		if ok {
+			logrus.Errorln("unimplemented:", reflect.TypeOf(a))
 			//score += 1
 		}
 	case *ast.DeferStmt:
 		_, ok := bNode.(*ast.DeferStmt)
 		if ok {
+			logrus.Errorln("unimplemented:", reflect.TypeOf(a))
 			//score += 1
 		}
 	case *ast.ReturnStmt:
@@ -87,6 +100,7 @@ func compare(aNode, bNode ast.Node) (score float64) {
 	case *ast.BranchStmt:
 		_, ok := bNode.(*ast.BranchStmt)
 		if ok {
+			logrus.Errorln("unimplemented:", reflect.TypeOf(a))
 			//score += 1
 		}
 	case *ast.BlockStmt:
@@ -98,7 +112,6 @@ func compare(aNode, bNode ast.Node) (score float64) {
 					score += compare(match.prev, match.next) / float64(max)
 				}
 			}
-			logrus.Info("BlockStmt", a, b, score)
 		}
 	case *ast.IfStmt:
 		b, ok := bNode.(*ast.IfStmt)
@@ -115,7 +128,6 @@ func compare(aNode, bNode ast.Node) (score float64) {
 				score += compare(a.Else, b.Else)
 			}
 			score = score / parts
-			logrus.Debugln("IfStmt:", a, b, score)
 		}
 	case *ast.SwitchStmt:
 		b, ok := bNode.(*ast.SwitchStmt)
@@ -137,12 +149,27 @@ func compare(aNode, bNode ast.Node) (score float64) {
 	case *ast.SelectStmt:
 		_, ok := bNode.(*ast.SelectStmt)
 		if ok {
+			logrus.Errorln("unimplemented:", reflect.TypeOf(a))
 			//score += 1
 		}
 	case *ast.ForStmt:
-		_, ok := bNode.(*ast.ForStmt)
+		b, ok := bNode.(*ast.ForStmt)
 		if ok {
-			//score += 1
+			children := 0
+			if a.Init != nil {
+				children++
+				score += compare(a.Init, b.Init)
+			}
+			if a.Cond != nil {
+				children++
+				score += compare(a.Cond, b.Cond)
+			}
+			if a.Post != nil {
+				children++
+				score += compare(a.Post, b.Post)
+			}
+			score = (score * (1 - 1/math.Phi)) / float64(children)
+			score += compare(a.Body, b.Body) / math.Phi
 		}
 	case *ast.RangeStmt:
 		b, ok := bNode.(*ast.RangeStmt)
@@ -170,7 +197,14 @@ func compare(aNode, bNode ast.Node) (score float64) {
 	case *ast.CallExpr:
 		b, ok := bNode.(*ast.CallExpr)
 		if ok {
-			score += compare(a.Fun, b.Fun)
+			total := util.IntMax(len(a.Args), len(b.Args))
+			for _, match := range matchExprs(a.Args, b.Args) {
+				if match.next != nil {
+					score += compare(match.prev, match.next) / float64(total)
+				}
+			}
+			score := score * (1 / math.Phi)
+			score += compare(a.Fun, b.Fun) * (1 - (1 / math.Phi))
 		}
 	case *ast.StarExpr:
 		b, ok := bNode.(*ast.StarExpr)
@@ -197,7 +231,7 @@ func compare(aNode, bNode ast.Node) (score float64) {
 		if ok {
 			score = compare(a.X, b.X) * (1 / math.Phi)
 			if a.Sel.Name == b.Sel.Name {
-				score += 1 * (1 - (1 / math.Phi))
+				score += 1 - (1 / math.Phi)
 			}
 		}
 	case *ast.BasicLit:
@@ -303,6 +337,11 @@ func compare(aNode, bNode ast.Node) (score float64) {
 					score += compare(match.prev, match.next) / float64(max)
 				}
 			}
+		}
+	case *ast.ParenExpr:
+		b, ok := bNode.(*ast.ParenExpr)
+		if ok {
+			score = compare(a.X, b.X)
 		}
 	default:
 		logrus.Errorln("compare:", "unimplemented case: ", reflect.TypeOf(a))

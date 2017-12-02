@@ -7,6 +7,7 @@ import (
 	"go/token"
 	"io/ioutil"
 	"path"
+	"reflect"
 	"strings"
 
 	"github.com/Sirupsen/logrus"
@@ -150,7 +151,7 @@ func GetFunctions(src, pack string) (map[string]*ast.FuncDecl, error) {
 	variables := make(map[string]*objects.Variable)
 	for _, decl := range f.Decls {
 		if function, ok := decl.(*ast.FuncDecl); ok {
-			functions[pack+"."+function.Name.Name] = function
+			functions[pack+"."+createSignature(function)] = function
 		}
 		if v, ok := decl.(*ast.GenDecl); ok {
 			switch v.Tok {
@@ -177,5 +178,63 @@ func gatherVariables(v *ast.GenDecl, variables map[string]*objects.Variable) {
 			}
 			variables[v.Name.Name] = v
 		}
+	}
+}
+
+func createSignature(f *ast.FuncDecl) (signature string) {
+	if f == nil {
+		return
+	}
+	//if f.Type.Params != nil {
+	//	for _, param := range f.Type.Params.List {
+	//		for _, name := range param.Names {
+	//			logrus.Infoln("param:", name.Name, getType(param.Type))
+	//		}
+	//	}
+	//}
+	//
+	//if f.Type.Results != nil {
+	//	for _, param := range f.Type.Results.List {
+	//		for _, name := range param.Names {
+	//			logrus.Infoln("result:", name.Name, getType(param.Type))
+	//		}
+	//	}
+	//}
+	if f.Recv != nil {
+		var recv []string
+		for _, param := range f.Recv.List {
+			for range param.Names {
+				recv = append(recv, getType(param.Type))
+			}
+		}
+		return strings.Join(recv, ",") + "." + f.Name.Name
+	}
+	return f.Name.Name
+}
+
+func getType(x ast.Node) string {
+	if x == nil {
+		return ""
+	}
+	switch t := x.(type) {
+	case *ast.Ident:
+		return t.Name
+	case *ast.SelectorExpr:
+		return getType(t.X) + "." + t.Sel.Name
+	case *ast.StarExpr:
+		return "*" + getType(t.X)
+	case *ast.ArrayType:
+		return "[" + getType(t.Len) + "]" + getType(t.Elt)
+	case *ast.MapType:
+		return "map[" + getType(t.Key) + "]" + getType(t.Value)
+	case *ast.InterfaceType:
+		if len(t.Methods.List) == 0 {
+			return "interface{}"
+		} else {
+			panic(reflect.TypeOf(t))
+			return ""
+		}
+	default:
+		panic(reflect.TypeOf(t))
 	}
 }

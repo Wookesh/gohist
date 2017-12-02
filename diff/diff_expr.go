@@ -42,6 +42,8 @@ func diffExpr(aExpr ast.Expr, bNode ast.Node, mode Mode) Coloring {
 		return diffIndexExpr(a, bExpr, mode)
 	case *ast.MapType:
 		return diffMapType(a, bExpr, mode)
+	case *ast.ParenExpr:
+		return diffParenExpr(a, bExpr, mode)
 	default:
 		logrus.Errorln("diffExpr:", "unimplemented case:", reflect.TypeOf(a))
 		return Coloring{NewColorChange(mode.ToColor(), aExpr)}
@@ -77,6 +79,7 @@ func diffSelectorExpr(a *ast.SelectorExpr, bExpr ast.Expr, mode Mode) (coloring 
 	}
 	coloring = append(coloring, diffExpr(a.X, b.X, mode)...)
 	if a.Sel.Name != b.Sel.Name {
+		logrus.Infoln("wrong!", a.Sel.Name, b.Sel.Name)
 		coloring = append(coloring, NewColorChange(mode.ToColor(), a.Sel))
 	}
 	return
@@ -217,5 +220,15 @@ func diffMapType(a *ast.MapType, bExpr ast.Expr, mode Mode) (coloring Coloring) 
 	}
 	coloring = append(coloring, diff(a.Key, b.Key, mode)...)
 	coloring = append(coloring, diff(a.Value, b.Value, mode)...)
+	return
+}
+
+func diffParenExpr(a *ast.ParenExpr, bExpr ast.Expr, mode Mode) (coloring Coloring) {
+	logrus.Debugln("diffParenExpr:", a, bExpr)
+	b, ok := bExpr.(*ast.ParenExpr)
+	if !ok {
+		return Coloring{NewColorChange(mode.ToColor(), a)}
+	}
+	coloring = append(coloring, diff(a.X, b.X, mode)...)
 	return
 }

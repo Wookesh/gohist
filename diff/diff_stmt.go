@@ -35,6 +35,8 @@ func diffStmt(aStmt ast.Stmt, bNode ast.Node, mode Mode) Coloring {
 		return diffReturnStmt(a, b, mode)
 	case *ast.RangeStmt:
 		return diffRangeStmt(a, b, mode)
+	case *ast.IncDecStmt:
+		return diffIncDecStmt(a, b, mode)
 	default:
 		logrus.Errorln("diffStmt:", "not implemented case", reflect.TypeOf(a))
 		return Coloring{NewColorChange(mode.ToColor(), a)}
@@ -217,4 +219,13 @@ func diffRangeStmt(a *ast.RangeStmt, bNode ast.Node, mode Mode) (coloring Colori
 	coloring = append(coloring, diff(a.X, b.X, mode)...)
 	coloring = append(coloring, diff(a.Body, b.Body, mode)...)
 	return
+}
+
+func diffIncDecStmt(a *ast.IncDecStmt, bNode ast.Node, mode Mode) (coloring Coloring) {
+	logrus.Debugln("diffIncDecStmt:", a, bNode)
+	b, ok := bNode.(*ast.IncDecStmt)
+	if !ok || a.Tok != b.Tok {
+		return Coloring{NewColorChange(mode.ToColor(), a)}
+	}
+	return diff(a.X, b.X, mode)
 }

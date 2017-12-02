@@ -2,7 +2,6 @@ package diff
 
 import (
 	"go/ast"
-	"math"
 	"reflect"
 	"sort"
 
@@ -33,7 +32,7 @@ func matchNodes(a, b []ast.Node, callFunc string) []matching {
 		for _, bStmt := range b {
 			score := compare(aStmt, bStmt)
 			logrus.Debugln(callFunc+":", reflect.TypeOf(aStmt), aStmt, score, reflect.TypeOf(bStmt), bStmt)
-			if score >= 1/(math.Phi*2) {
+			if score > 0.0 {
 				matchingList = append(matchingList, matchingElem{aStmt, score, bStmt})
 			}
 		}
