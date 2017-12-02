@@ -203,7 +203,7 @@ func compare(aNode, bNode ast.Node) (score float64) {
 					score += compare(match.prev, match.next) / float64(total)
 				}
 			}
-			score := score * (1 / math.Phi)
+			score = score * (1 / math.Phi)
 			score += compare(a.Fun, b.Fun) * (1 - (1 / math.Phi))
 		}
 	case *ast.StarExpr:
