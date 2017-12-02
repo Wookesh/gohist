@@ -27,6 +27,7 @@ func (t *Template) Render(w io.Writer, name string, data interface{}, c echo.Con
 
 type Link struct {
 	Name string
+	Len  int
 }
 
 type Links []Link
@@ -37,8 +38,8 @@ func (l Links) Less(i, j int) bool { return l[i].Name < l[j].Name }
 
 func (h *handler) List(c echo.Context) error {
 	var items Links
-	for i := range h.history.Data {
-		items = append(items, Link{i})
+	for i, fHistory := range h.history.Data {
+		items = append(items, Link{i, len(fHistory.History)})
 	}
 	sort.Sort(items)
 	return c.Render(http.StatusOK, "list.html", items)
