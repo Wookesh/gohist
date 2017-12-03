@@ -99,19 +99,23 @@ func Run(history *objects.History) {
 		templates: template.Must(template.New("sites").Funcs(funcMap).ParseGlob("ui/views/*.html")),
 	}
 	e := echo.New()
+	e.HideBanner = true
 	e.Renderer = t
+
 	e.GET("/", handler.List)
-	e.Static("/static", "ui/static")
 	e.GET("/:name/", handler.Get)
 	e.GET("/:path/:name/", handler.Get)
-	e.Logger.Fatal(e.Start(":8000"))
+	e.Static("/static", "ui/static")
+
+	if err := e.Start(":8000"); err != nil {
+		logrus.Fatalln(err)
+	}
 }
 
 func color(s string, coloring diff.Coloring, offset int) template.HTML {
 	if len(coloring) == 0 {
 		return template.HTML(s)
 	}
-	logrus.Debugln("color:")
 	logrus.Debugln("color:", coloring, offset)
 	current := 0
 	var hasColoring bool
@@ -140,12 +144,11 @@ func color(s string, coloring diff.Coloring, offset int) template.HTML {
 				}
 			}
 		}
-		result += string(s[i])
+		result += `<span>` + string(s[i]) + `</span>` // TODO: I dunno how to frontend, find better solution
 	}
 	if hasColoring {
 		result += `</span>`
 	}
-	//fmt.Println(result)
 	return template.HTML(result)
 }
 
