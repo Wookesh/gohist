@@ -151,7 +151,6 @@ func compare(aNode, bNode ast.Node) (score float64) {
 				score = score / 2
 			}
 			score += compare(a.Body, b.Body) * (1 / math.Phi)
-			logrus.Infoln("TypeSwitchStmt:", a, b, score, compare(a.Assign, b.Assign), compare(a.Init, b.Init), compare(a.Body, b.Body))
 		}
 	case *ast.SelectStmt:
 		_, ok := bNode.(*ast.SelectStmt)
@@ -376,6 +375,11 @@ func compare(aNode, bNode ast.Node) (score float64) {
 				score += 1 - 1/math.Phi
 			}
 			score += compare(a.X, b.X) * (1 / math.Phi)
+		}
+	case *ast.KeyValueExpr:
+		b, ok := bNode.(*ast.KeyValueExpr)
+		if ok {
+			score += (compare(a.Key, b.Key) + compare(a.Value, b.Value)) / 2
 		}
 	default:
 		logrus.Errorln("compare:", "unimplemented case: ", reflect.TypeOf(a))

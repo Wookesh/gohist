@@ -61,6 +61,7 @@ func CreateHistory(repoPath string, start, end string, withTests bool) (*objects
 		if err != nil {
 			return nil, err
 		}
+		added := make(map[string]bool)
 		files.ForEach(func(f *object.File) error {
 			if strings.HasSuffix(f.Name, ".go") && (!strings.HasSuffix(f.Name, "_test.go") || withTests) {
 				logrus.Debugln("CreateHistory:", "\t", f.Name)
@@ -82,6 +83,7 @@ func CreateHistory(repoPath string, start, end string, withTests bool) (*objects
 						funcHistory = &objects.FunctionHistory{}
 						history.Data[funcID] = funcHistory
 					}
+					added[funcID] = true
 					if len(funcHistory.History) > 0 {
 						last := len(funcHistory.History) - 1
 						if diff.IsSame(funcHistory.History[last].Func, funcDecl) {
@@ -100,6 +102,18 @@ func CreateHistory(repoPath string, start, end string, withTests bool) (*objects
 			}
 			return nil
 		})
+		for funcID, funcHistory := range history.Data {
+			if _, ok := added[funcID]; !ok {
+				if funcHistory.History[len(funcHistory.History)-1].Func != nil {
+					funcHistory.History = append(funcHistory.History, &objects.HistoryElement{
+						Func:   nil,
+						Commit: commit,
+						Text:   "",
+						Offset: 0,
+					})
+				}
+			}
+		}
 	}
 	return history, nil
 }

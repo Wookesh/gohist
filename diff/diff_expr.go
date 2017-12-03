@@ -46,6 +46,8 @@ func diffExpr(aExpr ast.Expr, bNode ast.Node, mode Mode) Coloring {
 		return diffParenExpr(a, bExpr, mode)
 	case *ast.SliceExpr:
 		return diffSliceExpr(a, bExpr, mode)
+	case *ast.KeyValueExpr:
+		return diffKeyValueExpr(a, bExpr, mode)
 	default:
 		logrus.Errorln("diffExpr:", "unimplemented case:", reflect.TypeOf(a))
 		return Coloring{NewColorChange(mode.ToColor(), aExpr)}
@@ -81,7 +83,6 @@ func diffSelectorExpr(a *ast.SelectorExpr, bExpr ast.Expr, mode Mode) (coloring 
 	}
 	coloring = append(coloring, diffExpr(a.X, b.X, mode)...)
 	if a.Sel.Name != b.Sel.Name {
-		logrus.Infoln("wrong!", a.Sel.Name, b.Sel.Name)
 		coloring = append(coloring, NewColorChange(mode.ToColor(), a.Sel))
 	}
 	return
@@ -251,5 +252,17 @@ func diffSliceExpr(a *ast.SliceExpr, bExpr ast.Expr, mode Mode) (coloring Colori
 	if a.Max != nil {
 		coloring = append(coloring, diff(a.Max, b.Max, mode)...)
 	}
+	return
+}
+
+func diffKeyValueExpr(a *ast.KeyValueExpr, bExpr ast.Expr, mode Mode) (coloring Coloring) {
+	logrus.Debugln("diffKeyValueExpr:", a, bExpr)
+	b, ok := bExpr.(*ast.KeyValueExpr)
+	if !ok {
+		return Coloring{NewColorChange(mode.ToColor(), a)}
+	}
+	coloring = append(coloring, diff(a.Key, b.Key, mode)...)
+	coloring = append(coloring, diff(a.Value, b.Value, mode)...)
+
 	return
 }
