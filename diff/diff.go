@@ -33,7 +33,7 @@ func Diff(a, b ast.Node, mode Mode) Coloring {
 
 func diff(aNode, b ast.Node, mode Mode) (coloring Coloring) {
 	logrus.Debugln("diff:", aNode, b)
-	if aNode == nil && b == nil {
+	if aNode == nil {
 		return
 	}
 	switch a := aNode.(type) {
@@ -43,8 +43,6 @@ func diff(aNode, b ast.Node, mode Mode) (coloring Coloring) {
 		coloring = diffStmt(a, b, mode)
 	case ast.Expr:
 		coloring = diffExpr(a, b, mode)
-		//case ast.Decl:
-		//	diffDecl(t, b, mode)
 	// non interface nodes:
 	case *ast.FieldList:
 		coloring = diffFieldList(a, b, mode)
