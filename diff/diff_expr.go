@@ -44,6 +44,8 @@ func diffExpr(aExpr ast.Expr, bNode ast.Node, mode Mode) Coloring {
 		return diffMapType(a, bExpr, mode)
 	case *ast.ParenExpr:
 		return diffParenExpr(a, bExpr, mode)
+	case *ast.SliceExpr:
+		return diffSliceExpr(a, bExpr, mode)
 	default:
 		logrus.Errorln("diffExpr:", "unimplemented case:", reflect.TypeOf(a))
 		return Coloring{NewColorChange(mode.ToColor(), aExpr)}
@@ -230,5 +232,24 @@ func diffParenExpr(a *ast.ParenExpr, bExpr ast.Expr, mode Mode) (coloring Colori
 		return Coloring{NewColorChange(mode.ToColor(), a)}
 	}
 	coloring = append(coloring, diff(a.X, b.X, mode)...)
+	return
+}
+
+func diffSliceExpr(a *ast.SliceExpr, bExpr ast.Expr, mode Mode) (coloring Coloring) {
+	logrus.Debugln("diffSliceExpr:", a, bExpr)
+	b, ok := bExpr.(*ast.SliceExpr)
+	if !ok {
+		return Coloring{NewColorChange(mode.ToColor(), a)}
+	}
+	coloring = append(coloring, diff(a.X, b.X, mode)...)
+	if a.High != nil {
+		coloring = append(coloring, diff(a.High, b.High, mode)...)
+	}
+	if a.Low != nil {
+		coloring = append(coloring, diff(a.Low, b.Low, mode)...)
+	}
+	if a.Max != nil {
+		coloring = append(coloring, diff(a.Max, b.Max, mode)...)
+	}
 	return
 }

@@ -19,7 +19,7 @@ import (
 )
 
 func CreateHistory(repoPath string, start, end string, withTests bool) (*objects.History, error) {
-	logrus.Infoln(repoPath)
+	logrus.Debugln("CreateHistory:", repoPath)
 	repo, err := git.PlainOpen(repoPath)
 	if err != nil {
 		return nil, err
@@ -56,14 +56,14 @@ func CreateHistory(repoPath string, start, end string, withTests bool) (*objects
 	history := objects.NewHistory()
 
 	for _, commit := range historyLine {
-		fmt.Println(commit.Hash)
+		logrus.Debugln("CreateHistory:", commit.Hash)
 		files, err := commit.Files()
 		if err != nil {
 			return nil, err
 		}
 		files.ForEach(func(f *object.File) error {
 			if strings.HasSuffix(f.Name, ".go") && (!strings.HasSuffix(f.Name, "_test.go") || withTests) {
-				fmt.Println("\t", f.Name)
+				logrus.Debugln("CreateHistory:", "\t", f.Name)
 				rd, err := f.Blob.Reader()
 				if err != nil {
 					return err

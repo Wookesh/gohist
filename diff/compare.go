@@ -36,7 +36,7 @@ func compare(aNode, bNode ast.Node) (score float64) {
 	case *ast.LabeledStmt:
 		_, ok := bNode.(*ast.LabeledStmt)
 		if ok {
-			logrus.Errorln("unimplemented:", reflect.TypeOf(a))
+			logrus.Errorln("compare:", "unimplemented:", reflect.TypeOf(a))
 			//score += 1
 		}
 	case *ast.ExprStmt:
@@ -47,7 +47,7 @@ func compare(aNode, bNode ast.Node) (score float64) {
 	case *ast.SendStmt:
 		_, ok := bNode.(*ast.SendStmt)
 		if ok {
-			logrus.Errorln("unimplemented:", reflect.TypeOf(a))
+			logrus.Errorln("compare:", "unimplemented:", reflect.TypeOf(a))
 			//score += 1
 		}
 	case *ast.IncDecStmt:
@@ -74,13 +74,13 @@ func compare(aNode, bNode ast.Node) (score float64) {
 	case *ast.GoStmt:
 		_, ok := bNode.(*ast.GoStmt)
 		if ok {
-			logrus.Errorln("unimplemented:", reflect.TypeOf(a))
+			logrus.Errorln("compare:", "unimplemented:", reflect.TypeOf(a))
 			//score += 1
 		}
 	case *ast.DeferStmt:
 		_, ok := bNode.(*ast.DeferStmt)
 		if ok {
-			logrus.Errorln("unimplemented:", reflect.TypeOf(a))
+			logrus.Errorln("compare:", "unimplemented:", reflect.TypeOf(a))
 			//score += 1
 		}
 	case *ast.ReturnStmt:
@@ -98,10 +98,17 @@ func compare(aNode, bNode ast.Node) (score float64) {
 			}
 		}
 	case *ast.BranchStmt:
-		_, ok := bNode.(*ast.BranchStmt)
+		b, ok := bNode.(*ast.BranchStmt)
 		if ok {
-			logrus.Errorln("unimplemented:", reflect.TypeOf(a))
-			//score += 1
+			if a.Tok == b.Tok {
+				score += 1.0
+			}
+			if a.Label != nil {
+				score = score / 2
+				if b.Label != nil {
+					score += compare(a.Label, b.Label) / 2
+				}
+			}
 		}
 	case *ast.BlockStmt:
 		b, ok := bNode.(*ast.BlockStmt)
@@ -149,7 +156,7 @@ func compare(aNode, bNode ast.Node) (score float64) {
 	case *ast.SelectStmt:
 		_, ok := bNode.(*ast.SelectStmt)
 		if ok {
-			logrus.Errorln("unimplemented:", reflect.TypeOf(a))
+			logrus.Errorln("compare:", "unimplemented:", reflect.TypeOf(a))
 			//score += 1
 		}
 	case *ast.ForStmt:
@@ -342,6 +349,33 @@ func compare(aNode, bNode ast.Node) (score float64) {
 		b, ok := bNode.(*ast.ParenExpr)
 		if ok {
 			score = compare(a.X, b.X)
+		}
+	case *ast.SliceExpr:
+		b, ok := bNode.(*ast.SliceExpr)
+		if ok {
+			parts := 0
+			if a.Low != nil {
+				parts++
+				score += compare(a.Low, b.Low)
+			}
+			if a.High != nil {
+				parts++
+				score += compare(a.High, b.High)
+			}
+			if a.Max != nil {
+				parts++
+				score += compare(a.Max, b.Max)
+			}
+			score = (score / float64(parts)) * (1 - 1/math.Phi)
+			score += compare(a.X, b.X) * (1 / math.Phi)
+		}
+	case *ast.UnaryExpr:
+		b, ok := bNode.(*ast.UnaryExpr)
+		if ok {
+			if a.Op == b.Op {
+				score += 1 - 1/math.Phi
+			}
+			score += compare(a.X, b.X) * (1 / math.Phi)
 		}
 	default:
 		logrus.Errorln("compare:", "unimplemented case: ", reflect.TypeOf(a))
