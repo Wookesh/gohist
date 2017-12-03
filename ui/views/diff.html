@@ -35,10 +35,10 @@
     </div>
     {{with index .diffView.History.History .pos}}
     <div class="row">
-        <div class="col-md-4">Author:</div><div class="col-md-8">{{.Commit.Author.Name}}</div>
-        <div class="col-md-4">Email:</div><div class="col-md-8">{{.Commit.Author.Email}}</div>
-        <div class="col-md-4">Hash:</div><div class="col-md-8">{{.Commit.Hash}}</div>
-        <div class="col-md-4">Message:</div><div class="col-md-8">{{.Commit.Message}}</div>
+        <div class="col-md-4" align="right">Author:</div><div class="col-md-8">{{.Commit.Author.Name}}</div>
+        <div class="col-md-4" align="right">Email:</div><div class="col-md-8">{{.Commit.Author.Email}}</div>
+        <div class="col-md-4" align="right">Hash:</div><div class="col-md-8">{{.Commit.Hash}}</div>
+        <div class="col-md-4" align="right">Message:</div><div class="col-md-8">{{.Commit.Message}}</div>
     </div>
     {{end}}
     <div class="row">

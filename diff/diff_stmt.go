@@ -43,6 +43,12 @@ func diffStmt(aStmt ast.Stmt, bNode ast.Node, mode Mode) Coloring {
 		return diffGoStmt(a, b, mode)
 	case *ast.DeferStmt:
 		return diffDeferStmt(a, b, mode)
+	case *ast.SelectStmt:
+		return diffSelectStmt(a, b, mode)
+	case *ast.CommClause:
+		return diffCommClause(a, b, mode)
+	case *ast.SendStmt:
+		return diffSendStmt(a, b, mode)
 	default:
 		logrus.Errorln("diffStmt:", "not implemented case", reflect.TypeOf(a))
 		return Coloring{NewColorChange(mode.ToColor(), a)}
@@ -238,5 +244,37 @@ func diffDeferStmt(a *ast.DeferStmt, bNode ast.Node, mode Mode) (coloring Colori
 		return Coloring{NewColorChange(mode.ToColor(), a)}
 	}
 	coloring = diff(a.Call, b.Call, mode)
+	return
+}
+
+func diffSelectStmt(a *ast.SelectStmt, bNode ast.Node, mode Mode) (coloring Coloring) {
+	logrus.Debugln("diffSelectStmt:", a, bNode)
+	b, ok := bNode.(*ast.SelectStmt)
+	if !ok {
+		return Coloring{NewColorChange(mode.ToColor(), a)}
+	}
+	coloring = diff(a.Body, b.Body, mode)
+	return
+}
+
+func diffCommClause(a *ast.CommClause, bNode ast.Node, mode Mode) (coloring Coloring) {
+	logrus.Debugln("diffCommClause:", a, bNode)
+	b, ok := bNode.(*ast.CommClause)
+	if !ok {
+		return Coloring{NewColorChange(mode.ToColor(), a)}
+	}
+	coloring = append(coloring, diff(a.Comm, b.Comm, mode)...)
+	coloring = append(coloring, colorMatches(matchStmts(a.Body, b.Body), mode, "CommClause")...)
+	return
+}
+
+func diffSendStmt(a *ast.SendStmt, bNode ast.Node, mode Mode) (coloring Coloring) {
+	logrus.Debugln("diffSendStmt:", a, bNode)
+	b, ok := bNode.(*ast.SendStmt)
+	if !ok {
+		return Coloring{NewColorChange(mode.ToColor(), a)}
+	}
+	coloring = append(coloring, diff(a.Chan, b.Chan, mode)...)
+	coloring = append(coloring, diff(a.Value, b.Value, mode)...)
 	return
 }

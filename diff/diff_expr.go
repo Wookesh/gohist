@@ -50,6 +50,8 @@ func diffExpr(aExpr ast.Expr, bNode ast.Node, mode Mode) Coloring {
 		return diffKeyValueExpr(a, bExpr, mode)
 	case *ast.InterfaceType:
 		return diffInterfaceType(a, bExpr, mode)
+	case *ast.ChanType:
+		return diffChanType(a, bExpr, mode)
 	default:
 		logrus.Errorln("diffExpr:", "unimplemented case:", reflect.TypeOf(a))
 		return Coloring{NewColorChange(mode.ToColor(), a)}
@@ -261,5 +263,18 @@ func diffInterfaceType(a *ast.InterfaceType, bExpr ast.Expr, mode Mode) (colorin
 		return Coloring{NewColorChange(mode.ToColor(), a)}
 	}
 	coloring = diff(a.Methods, b.Methods, mode)
+	return
+}
+
+func diffChanType(a *ast.ChanType, bExpr ast.Expr, mode Mode) (coloring Coloring) {
+	logrus.Debugln("diffChanType:", a, bExpr)
+	b, ok := bExpr.(*ast.ChanType)
+	if !ok {
+		return Coloring{NewColorChange(mode.ToColor(), a)}
+	}
+	if a.Dir != b.Dir {
+		logrus.Errorln("diffChanType:", a, b)
+	}
+	coloring = diff(a.Value, b.Value, mode)
 	return
 }

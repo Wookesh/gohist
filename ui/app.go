@@ -107,6 +107,8 @@ func Run(history *objects.History) {
 	e.GET("/:path/:name/", handler.Get)
 	e.Static("/static", "ui/static")
 
+	logrus.Infoln("GoHist:", "started web server")
+
 	if err := e.Start(":8000"); err != nil {
 		logrus.Fatalln(err)
 	}

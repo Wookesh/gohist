@@ -37,7 +37,6 @@ func compare(aNode, bNode ast.Node) (score float64) {
 		_, ok := bNode.(*ast.LabeledStmt)
 		if ok {
 			logrus.Errorln("compare:", "unimplemented:", reflect.TypeOf(a))
-			//score += 1
 		}
 	case *ast.ExprStmt:
 		b, ok := bNode.(*ast.ExprStmt)
@@ -45,10 +44,10 @@ func compare(aNode, bNode ast.Node) (score float64) {
 			score += compare(a.X, b.X)
 		}
 	case *ast.SendStmt:
-		_, ok := bNode.(*ast.SendStmt)
+		b, ok := bNode.(*ast.SendStmt)
 		if ok {
-			logrus.Errorln("compare:", "unimplemented:", reflect.TypeOf(a))
-			//score += 1
+			score += compare(a.Chan, b.Chan) / 2
+			score += compare(a.Value, b.Value) / 2
 		}
 	case *ast.IncDecStmt:
 		b, ok := bNode.(*ast.IncDecStmt)
@@ -156,10 +155,9 @@ func compare(aNode, bNode ast.Node) (score float64) {
 			score += compare(a.Body, b.Body) * (1 / math.Phi)
 		}
 	case *ast.SelectStmt:
-		_, ok := bNode.(*ast.SelectStmt)
+		b, ok := bNode.(*ast.SelectStmt)
 		if ok {
-			logrus.Errorln("compare:", "unimplemented:", reflect.TypeOf(a))
-			//score += 1
+			score += compare(a.Body, b.Body)
 		}
 	case *ast.ForStmt:
 		b, ok := bNode.(*ast.ForStmt)
@@ -177,7 +175,9 @@ func compare(aNode, bNode ast.Node) (score float64) {
 				children++
 				score += compare(a.Post, b.Post)
 			}
-			score = (score * (1 - 1/math.Phi)) / float64(children)
+			if children > 0 {
+				score = (score * (1 - 1/math.Phi)) / float64(children)
+			}
 			score += compare(a.Body, b.Body) / math.Phi
 		}
 	case *ast.RangeStmt:
@@ -399,6 +399,25 @@ func compare(aNode, bNode ast.Node) (score float64) {
 			} else {
 				if b.Methods != nil {
 					score += compare(a.Methods, b.Methods)
+				}
+			}
+		}
+	case *ast.ChanType:
+		b, ok := bNode.(*ast.ChanType)
+		if ok {
+			score += compare(a.Value, b.Value) * 1 / math.Phi
+			if a.Dir == b.Dir {
+				score += 1 - 1/math.Phi
+			}
+		}
+	case *ast.CommClause:
+		b, ok := bNode.(*ast.CommClause)
+		if ok {
+			score += compare(a.Comm, b.Comm) * 1 / math.Phi
+			max := float64(util.IntMax(len(a.Body), len(b.Body)))
+			for _, match := range matchStmts(a.Body, b.Body) {
+				if match.next != nil {
+					score += compare(match.prev, match.prev) * (1 - 1/math.Phi) / max
 				}
 			}
 		}
