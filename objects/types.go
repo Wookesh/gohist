@@ -32,11 +32,3 @@ type Variable struct {
 	Type ast.Expr
 	Expr ast.Expr
 }
-
-//type Commit struct {
-//	SHA       string
-//	Author    string
-//	Committer string
-//	Parent    []*Commit
-//	Timestamp time.Time
-//}

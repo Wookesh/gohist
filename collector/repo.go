@@ -236,7 +236,7 @@ func getType(x ast.Node) string {
 	case *ast.SelectorExpr:
 		return getType(t.X) + "." + t.Sel.Name
 	case *ast.StarExpr:
-		return "*" + getType(t.X)
+		return getType(t.X)
 	case *ast.ArrayType:
 		return "[" + getType(t.Len) + "]" + getType(t.Elt)
 	case *ast.MapType:
