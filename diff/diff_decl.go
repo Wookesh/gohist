@@ -19,6 +19,7 @@ func diffDecl(aDecl ast.Decl, bDecl ast.Node, mode Mode) Coloring {
 		return diffGenDecl(a, b, mode)
 	default:
 		logrus.Errorln("diffDecl:", "unimplemented case:", reflect.TypeOf(a))
+		return Coloring{NewColorChange(mode.ToColor(), a)}
 	}
 	return nil
 }

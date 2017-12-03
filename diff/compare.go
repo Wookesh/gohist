@@ -315,10 +315,9 @@ func compare(aNode, bNode ast.Node) (score float64) {
 				max := util.IntMax(len(a.List), len(b.List))
 				for _, match := range matchFields(a.List, b.List) {
 					if match.next != nil {
-						score += 1
+						score += 1 / float64(max)
 					}
 				}
-				score = score / float64(max)
 			}
 		}
 	case *ast.IndexExpr:
@@ -389,6 +388,19 @@ func compare(aNode, bNode ast.Node) (score float64) {
 		b, ok := bNode.(*ast.KeyValueExpr)
 		if ok {
 			score += (compare(a.Key, b.Key) + compare(a.Value, b.Value)) / 2
+		}
+	case *ast.InterfaceType:
+		b, ok := bNode.(*ast.InterfaceType)
+		if ok {
+			if a.Methods == nil {
+				if b.Methods == nil {
+					score = 1
+				}
+			} else {
+				if b.Methods != nil {
+					score += compare(a.Methods, b.Methods)
+				}
+			}
 		}
 	default:
 		logrus.Errorln("compare:", "unimplemented case: ", reflect.TypeOf(a))

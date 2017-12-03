@@ -104,15 +104,3 @@ func diffValueSpec(a *ast.ValueSpec, bNode ast.Node, mode Mode) (coloring Colori
 	coloring = append(coloring, diff(a.Type, b.Type, mode)...)
 	return
 }
-
-func colorMatches(matching []matching, mode Mode, callFunc string) (coloring Coloring) {
-	for _, match := range matching {
-		if match.next == nil {
-			logrus.Debugln(callFunc, "unmatched:", match.prev, reflect.TypeOf(match.prev))
-			coloring = append(coloring, NewColorChange(mode.ToColor(), match.prev))
-		} else {
-			coloring = append(coloring, diff(match.prev, match.next, mode)...)
-		}
-	}
-	return
-}

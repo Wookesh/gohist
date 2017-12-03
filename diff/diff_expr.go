@@ -52,7 +52,7 @@ func diffExpr(aExpr ast.Expr, bNode ast.Node, mode Mode) Coloring {
 		return diffInterfaceType(a, bExpr, mode)
 	default:
 		logrus.Errorln("diffExpr:", "unimplemented case:", reflect.TypeOf(a))
-		return Coloring{NewColorChange(mode.ToColor(), aExpr)}
+		return Coloring{NewColorChange(mode.ToColor(), a)}
 	}
 }
 
@@ -65,7 +65,7 @@ func diffCallExpr(a *ast.CallExpr, bExpr ast.Expr, mode Mode) (coloring Coloring
 	//if len(coloring) > 0 {
 	//	return Coloring{NewColorChange(mode.ToColor(), a)}
 	//}
-	coloring = append(coloring, colorMatches(matchExprs(a.Args, b.Args), mode, "diffCallExpr")...)
+	coloring = append(coloring, colorList(exprToNodes(a.Args), exprToNodes(b.Args), mode, "diffCallExpr")...)
 	return coloring
 }
 
