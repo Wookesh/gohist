@@ -48,6 +48,8 @@ func diffExpr(aExpr ast.Expr, bNode ast.Node, mode Mode) Coloring {
 		return diffSliceExpr(a, bExpr, mode)
 	case *ast.KeyValueExpr:
 		return diffKeyValueExpr(a, bExpr, mode)
+	case *ast.InterfaceType:
+		return diffInterfaceType(a, bExpr, mode)
 	default:
 		logrus.Errorln("diffExpr:", "unimplemented case:", reflect.TypeOf(a))
 		return Coloring{NewColorChange(mode.ToColor(), aExpr)}
@@ -60,18 +62,10 @@ func diffCallExpr(a *ast.CallExpr, bExpr ast.Expr, mode Mode) (coloring Coloring
 		return Coloring{NewColorChange(mode.ToColor(), a)}
 	}
 	coloring = diffExpr(a.Fun, b.Fun, mode)
-	if len(coloring) > 0 {
-		return Coloring{NewColorChange(mode.ToColor(), a)}
-	}
-	for _, match := range matchExprs(a.Args, b.Args) {
-		aExpr, bExpr := match.prev, match.next
-		if match.next == nil {
-			logrus.Debugln("diffCallExpr:", "unmatched:", aExpr, reflect.TypeOf(aExpr))
-			coloring = append(coloring, NewColorChange(mode.ToColor(), aExpr))
-		} else {
-			coloring = append(coloring, diff(aExpr, bExpr, mode)...)
-		}
-	}
+	//if len(coloring) > 0 {
+	//	return Coloring{NewColorChange(mode.ToColor(), a)}
+	//}
+	coloring = append(coloring, colorMatches(matchExprs(a.Args, b.Args), mode, "diffCallExpr")...)
 	return coloring
 }
 
@@ -150,14 +144,7 @@ func diffCompositeLit(a *ast.CompositeLit, bExpr ast.Expr, mode Mode) (coloring 
 		return Coloring{NewColorChange(mode.ToColor(), a)}
 	}
 	coloring = append(coloring, diff(a.Type, b.Type, mode)...)
-	for _, match := range matchExprs(a.Elts, b.Elts) {
-		if match.next == nil {
-			logrus.Debugln("diffCompositeLit:", "unmatched:", match.prev, reflect.TypeOf(match.prev))
-			coloring = append(coloring, NewColorChange(mode.ToColor(), match.prev))
-		} else {
-			coloring = append(coloring, diff(match.prev, match.next, mode)...)
-		}
-	}
+	coloring = append(coloring, colorMatches(matchExprs(a.Elts, b.Elts), mode, "diffCompositeLit")...)
 	return
 }
 
@@ -264,5 +251,15 @@ func diffKeyValueExpr(a *ast.KeyValueExpr, bExpr ast.Expr, mode Mode) (coloring 
 	coloring = append(coloring, diff(a.Key, b.Key, mode)...)
 	coloring = append(coloring, diff(a.Value, b.Value, mode)...)
 
+	return
+}
+
+func diffInterfaceType(a *ast.InterfaceType, bExpr ast.Expr, mode Mode) (coloring Coloring) {
+	logrus.Debugln("diffInterfaceType:", a, bExpr)
+	b, ok := bExpr.(*ast.InterfaceType)
+	if !ok {
+		return Coloring{NewColorChange(mode.ToColor(), a)}
+	}
+	coloring = diff(a.Methods, b.Methods, mode)
 	return
 }

@@ -39,6 +39,10 @@ func diffStmt(aStmt ast.Stmt, bNode ast.Node, mode Mode) Coloring {
 		return diffIncDecStmt(a, b, mode)
 	case *ast.BranchStmt:
 		return diffBranchStmt(a, b, mode)
+	case *ast.GoStmt:
+		return diffGoStmt(a, b, mode)
+	case *ast.DeferStmt:
+		return diffDeferStmt(a, b, mode)
 	default:
 		logrus.Errorln("diffStmt:", "not implemented case", reflect.TypeOf(a))
 		return Coloring{NewColorChange(mode.ToColor(), a)}
@@ -46,24 +50,14 @@ func diffStmt(aStmt ast.Stmt, bNode ast.Node, mode Mode) Coloring {
 	return nil
 }
 
-func diffBlockStmt(a *ast.BlockStmt, bNode ast.Node, mode Mode) Coloring {
+func diffBlockStmt(a *ast.BlockStmt, bNode ast.Node, mode Mode) (coloring Coloring) {
 	logrus.Debugln("diffBlockStmt:", a, bNode)
 	b, ok := bNode.(*ast.BlockStmt)
 	if !ok {
 		return Coloring{NewColorChange(mode.ToColor(), a)}
 	}
-
-	var coloring Coloring
-	for _, match := range matchStmts(a.List, b.List) {
-		aStmt, bStmt := match.prev, match.next
-		if bStmt == nil {
-			logrus.Debugln("diffBlockStmt:", "unmatched:", aStmt, reflect.TypeOf(aStmt))
-			coloring = append(coloring, NewColorChange(mode.ToColor(), aStmt))
-		} else {
-			coloring = append(coloring, diff(aStmt, bStmt, mode)...)
-		}
-	}
-	return coloring
+	coloring = append(coloring, colorMatches(matchStmts(a.List, b.List), mode, "diffBlockStmt")...)
+	return
 }
 
 func diffForStmt(a *ast.ForStmt, bNode ast.Node, mode Mode) (coloring Coloring) {
@@ -109,24 +103,8 @@ func diffAssignStmt(a *ast.AssignStmt, bNode ast.Node, mode Mode) (coloring Colo
 	if !ok {
 		return Coloring{NewColorChange(mode.ToColor(), a)}
 	}
-	for _, match := range matchExprs(a.Lhs, b.Lhs) {
-		aStmt, bStmt := match.prev, match.next
-		if bStmt == nil {
-			logrus.Debugln("diffAssignStmt:", "unmatched:", aStmt, reflect.TypeOf(aStmt))
-			coloring = append(coloring, NewColorChange(mode.ToColor(), aStmt))
-		} else {
-			coloring = append(coloring, diff(aStmt, bStmt, mode)...)
-		}
-	}
-	for _, match := range matchExprs(a.Rhs, b.Rhs) {
-		aStmt, bStmt := match.prev, match.next
-		if bStmt == nil {
-			logrus.Debugln("diffAssignStmt:", "unmatched:", aStmt, reflect.TypeOf(aStmt))
-			coloring = append(coloring, NewColorChange(mode.ToColor(), aStmt))
-		} else {
-			coloring = append(coloring, diff(aStmt, bStmt, mode)...)
-		}
-	}
+	coloring = append(coloring, colorMatches(matchExprs(a.Lhs, b.Lhs), mode, "diffAssignStmt")...)
+	coloring = append(coloring, colorMatches(matchExprs(a.Rhs, b.Rhs), mode, "diffAssignStmt")...)
 
 	return
 }
@@ -150,21 +128,8 @@ func diffCaseClause(a *ast.CaseClause, bNode ast.Node, mode Mode) (coloring Colo
 	if !ok {
 		return Coloring{NewColorChange(mode.ToColor(), a)}
 	}
-	for _, match := range matchExprs(a.List, b.List) {
-		if match.next == nil {
-			coloring = append(coloring, NewColorChange(mode.ToColor(), match.prev))
-		} else {
-			coloring = append(coloring, diff(match.prev, match.next, mode)...)
-		}
-	}
-	for _, match := range matchStmts(a.Body, b.Body) {
-		if match.next == nil {
-			coloring = append(coloring, NewColorChange(mode.ToColor(), match.prev))
-		} else {
-			coloring = append(coloring, diff(match.prev, match.next, mode)...)
-		}
-	}
-
+	coloring = append(coloring, colorMatches(matchExprs(a.List, b.List), mode, "diffCaseClause")...)
+	coloring = append(coloring, colorMatches(matchStmts(a.Body, b.Body), mode, "diffCaseClause")...)
 	return
 }
 
@@ -196,13 +161,7 @@ func diffReturnStmt(a *ast.ReturnStmt, bNode ast.Node, mode Mode) (coloring Colo
 	if !ok {
 		return Coloring{NewColorChange(mode.ToColor(), a)}
 	}
-	for _, match := range matchExprs(a.Results, b.Results) {
-		if match.next == nil {
-			coloring = append(coloring, NewColorChange(mode.ToColor(), match.prev))
-		} else {
-			coloring = append(coloring, diff(match.prev, match.next, mode)...)
-		}
-	}
+	coloring = append(coloring, colorMatches(matchExprs(a.Results, b.Results), mode, "diffReturnStmt")...)
 	return
 }
 
@@ -245,5 +204,39 @@ func diffBranchStmt(a *ast.BranchStmt, bNode ast.Node, mode Mode) (coloring Colo
 			return Coloring{NewColorChange(mode.ToColor(), a)}
 		}
 	}
+	return
+}
+
+func diffGoStmt(a *ast.GoStmt, bNode ast.Node, mode Mode) (coloring Coloring) {
+	logrus.Debugln("diffGoStmt:", a, bNode)
+	b, ok := bNode.(*ast.GoStmt)
+	if !ok {
+		//b, ok := bNode.(*ast.CallExpr)
+		//if !ok {
+		//	return Coloring{NewColorChange(mode.ToColor(), a)}
+		//}
+		//coloring = append(coloring, ColorChange{Color: mode.ToColor(), Pos: a.Go, End: a.Pos()})
+		//coloring = append(coloring, diff(a.Call, b, mode)...)
+		//return
+		return Coloring{NewColorChange(mode.ToColor(), a)}
+	}
+	coloring = diff(a.Call, b.Call, mode)
+	return
+}
+
+func diffDeferStmt(a *ast.DeferStmt, bNode ast.Node, mode Mode) (coloring Coloring) {
+	logrus.Debugln("diffDeferStmt:", a, bNode)
+	b, ok := bNode.(*ast.DeferStmt)
+	if !ok {
+		//b, ok := bNode.(*ast.CallExpr)
+		//if !ok {
+		//	return Coloring{NewColorChange(mode.ToColor(), a)}
+		//}
+		//coloring = append(coloring, ColorChange{Color: mode.ToColor(), Pos: a.Defer, End: a.Pos()})
+		//coloring = append(coloring, diff(a.Call, b, mode)...)
+		//return
+		return Coloring{NewColorChange(mode.ToColor(), a)}
+	}
+	coloring = diff(a.Call, b.Call, mode)
 	return
 }

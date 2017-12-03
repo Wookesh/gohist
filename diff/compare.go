@@ -72,16 +72,19 @@ func compare(aNode, bNode ast.Node) (score float64) {
 			score = score / float64(minRhs+minLhs)
 		}
 	case *ast.GoStmt:
-		_, ok := bNode.(*ast.GoStmt)
+		b, ok := bNode.(*ast.GoStmt)
 		if ok {
-			logrus.Errorln("compare:", "unimplemented:", reflect.TypeOf(a))
-			//score += 1
+			score += compare(a.Call, b.Call)
+		} else {
+			//b, ok := bNode.(*ast.CallExpr)
+			//if ok {
+			//	score += compare(a.Call, b) * (1 - 1/math.Phi)
+			//}
 		}
 	case *ast.DeferStmt:
-		_, ok := bNode.(*ast.DeferStmt)
+		b, ok := bNode.(*ast.DeferStmt)
 		if ok {
-			logrus.Errorln("compare:", "unimplemented:", reflect.TypeOf(a))
-			//score += 1
+			score += compare(a.Call, b.Call)
 		}
 	case *ast.ReturnStmt:
 		b, ok := bNode.(*ast.ReturnStmt)
@@ -304,13 +307,19 @@ func compare(aNode, bNode ast.Node) (score float64) {
 	case *ast.FieldList:
 		b, ok := bNode.(*ast.FieldList)
 		if ok {
-			max := util.IntMax(len(a.List), len(b.List))
-			for _, match := range matchFields(a.List, b.List) {
-				if match.next != nil {
+			if a == nil {
+				if b == nil {
 					score += 1
 				}
+			} else if b != nil {
+				max := util.IntMax(len(a.List), len(b.List))
+				for _, match := range matchFields(a.List, b.List) {
+					if match.next != nil {
+						score += 1
+					}
+				}
+				score = score / float64(max)
 			}
-			score = score / float64(max)
 		}
 	case *ast.IndexExpr:
 		b, ok := bNode.(*ast.IndexExpr)

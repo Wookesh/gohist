@@ -50,6 +50,8 @@ func diff(aNode, b ast.Node, mode Mode) (coloring Coloring) {
 		coloring = diffFieldList(a, b, mode)
 	case *ast.Field:
 		coloring = diffField(a, b, mode)
+	case *ast.ValueSpec:
+		coloring = diffValueSpec(a, b, mode)
 	default:
 		logrus.Errorln("diff:", "not implemented case", reflect.TypeOf(a))
 		coloring = Coloring{NewColorChange(mode.ToColor(), a)}
@@ -66,6 +68,9 @@ func diffFieldList(a *ast.FieldList, bNode ast.Node, mode Mode) (coloring Colori
 	if a == nil {
 		return
 	}
+	if b == nil {
+		return Coloring{NewColorChange(mode.ToColor(), a)}
+	}
 	for _, match := range matchFields(a.List, b.List) {
 		if match.next == nil {
 			coloring = append(coloring, NewColorChange(mode.ToColor(), match.prev))
@@ -73,6 +78,7 @@ func diffFieldList(a *ast.FieldList, bNode ast.Node, mode Mode) (coloring Colori
 			coloring = append(coloring, diff(match.prev, match.next, mode)...)
 		}
 	}
+
 	return
 }
 
@@ -82,13 +88,31 @@ func diffField(a *ast.Field, bNode ast.Node, mode Mode) (coloring Coloring) {
 		return Coloring{NewColorChange(mode.ToColor(), a)}
 	}
 
-	for _, match := range matchIdents(a.Names, b.Names) {
+	coloring = append(coloring, colorMatches(matchIdents(a.Names, b.Names), mode, "diffField")...)
+	coloring = append(coloring, diff(a.Type, b.Type, mode)...)
+	return
+}
+
+func diffValueSpec(a *ast.ValueSpec, bNode ast.Node, mode Mode) (coloring Coloring) {
+	b, ok := bNode.(*ast.ValueSpec)
+	if !ok {
+		return Coloring{NewColorChange(mode.ToColor(), a)}
+	}
+
+	coloring = append(coloring, colorMatches(matchIdents(a.Names, b.Names), mode, "diffValueSpec")...)
+	coloring = append(coloring, colorMatches(matchExprs(a.Values, b.Values), mode, "diffValueSpec")...)
+	coloring = append(coloring, diff(a.Type, b.Type, mode)...)
+	return
+}
+
+func colorMatches(matching []matching, mode Mode, callFunc string) (coloring Coloring) {
+	for _, match := range matching {
 		if match.next == nil {
+			logrus.Debugln(callFunc, "unmatched:", match.prev, reflect.TypeOf(match.prev))
 			coloring = append(coloring, NewColorChange(mode.ToColor(), match.prev))
 		} else {
 			coloring = append(coloring, diff(match.prev, match.next, mode)...)
 		}
 	}
-	coloring = append(coloring, diff(a.Type, b.Type, mode)...)
 	return
 }

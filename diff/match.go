@@ -55,6 +55,7 @@ func matchNodes(a, b []ast.Node, callFunc string) []matching {
 	var result []matching
 	for _, aStmt := range a {
 		bStmt := matched[aStmt]
+		logrus.Debugln(callFunc, "matched:", reflect.TypeOf(aStmt), aStmt, "::", reflect.TypeOf(bStmt), bStmt)
 		result = append(result, matching{prev: aStmt, next: bStmt})
 	}
 	return result
