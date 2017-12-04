@@ -9,9 +9,9 @@ import (
 )
 
 type context struct {
-	a     nodeContext
-	b     nodeContext
-	gobal vars
+	a      nodeContext
+	b      nodeContext
+	global vars
 }
 
 type nodeContext struct {

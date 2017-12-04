@@ -146,7 +146,11 @@ func color(s string, coloring diff.Coloring, offset int) template.HTML {
 				}
 			}
 		}
-		result += `<span>` + string(s[i]) + `</span>` // TODO: I dunno how to frontend, find better solution
+		if s[i] == '<' {
+			result += `<span>` + string(s[i]) + `</span>` // TODO: I dunno how to frontend, find better solution later
+		} else {
+			result += string(s[i])
+		}
 	}
 	if hasColoring {
 		result += `</span>`
