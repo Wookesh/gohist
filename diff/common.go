@@ -66,7 +66,12 @@ func colorMatches(matching []matching, mode Mode, callFunc string) (coloring Col
 			logrus.Debugln(callFunc, "unmatched:", match.prev, reflect.TypeOf(match.prev))
 			coloring = append(coloring, NewColorChange(mode.ToColor(), match.prev))
 		} else {
-			coloring = append(coloring, diff(match.prev, match.next, mode)...)
+			nodeColoring := diff(match.prev, match.next, mode)
+			if len(nodeColoring) == 0 && match.orderChanged {
+				nodeColoring = append(nodeColoring, NewColorChange(ColorSimilar, match.prev))
+			}
+			coloring = append(coloring, nodeColoring...)
+
 		}
 	}
 	return

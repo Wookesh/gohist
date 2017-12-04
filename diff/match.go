@@ -9,9 +9,14 @@ import (
 )
 
 type matchingElem struct {
-	stmt  ast.Node
+	node  *nodeInfo
 	score float64
-	match ast.Node
+	match *nodeInfo
+}
+
+type nodeInfo struct {
+	node ast.Node
+	pos  int
 }
 
 type matchingElems []matchingElem
@@ -21,42 +26,72 @@ func (e matchingElems) Less(i, j int) bool { return e[i].score < e[j].score }
 func (e matchingElems) Swap(i, j int)      { e[i], e[j] = e[j], e[i] }
 
 type matching struct {
-	prev ast.Node
-	next ast.Node
+	prev            ast.Node
+	next            ast.Node
+	positionChanged bool
+	orderChanged    bool
 }
 
 func matchNodes(a, b []ast.Node, callFunc string) []matching {
-	matched := make(map[ast.Node]ast.Node)
 	var matchingList matchingElems
-	for _, aStmt := range a {
-		for _, bStmt := range b {
-			score := compare(aStmt, bStmt)
-			logrus.Debugln(callFunc+":", reflect.TypeOf(aStmt), aStmt, score, reflect.TypeOf(bStmt), bStmt)
+	var aNodesInfo, bNodeInfo []*nodeInfo
+	for i, node := range a {
+		aNodesInfo = append(aNodesInfo, &nodeInfo{node, i})
+	}
+	for i, node := range b {
+		bNodeInfo = append(bNodeInfo, &nodeInfo{node, i})
+	}
+	for _, aNodeInfo := range aNodesInfo {
+		for _, bNodeInfo := range bNodeInfo {
+			score := compare(aNodeInfo.node, bNodeInfo.node)
+			logrus.Debugln(callFunc+":", reflect.TypeOf(aNodeInfo.node), aNodeInfo.node, score,
+				reflect.TypeOf(bNodeInfo.node), bNodeInfo.node)
 			if score > 0.0 {
-				matchingList = append(matchingList, matchingElem{aStmt, score, bStmt})
+				matchingList = append(matchingList, matchingElem{aNodeInfo, score, bNodeInfo})
 			}
 		}
 	}
 
 	sort.Sort(sort.Reverse(matchingList))
 
-	used := make(map[ast.Node]bool)
+	used := make(map[*nodeInfo]bool)
+	matched := make(map[*nodeInfo]*nodeInfo)
 	for _, elem := range matchingList {
 		if _, ok := used[elem.match]; ok {
 			continue
 		}
-		if _, ok := matched[elem.stmt]; ok {
+		if _, ok := matched[elem.node]; ok {
 			continue
 		}
 		used[elem.match] = true
-		matched[elem.stmt] = elem.match
+		matched[elem.node] = elem.match
 	}
 
 	var result []matching
-	for _, aStmt := range a {
-		bStmt := matched[aStmt]
-		logrus.Debugln(callFunc, "matched:", reflect.TypeOf(aStmt), aStmt, "::", reflect.TypeOf(bStmt), bStmt)
-		result = append(result, matching{prev: aStmt, next: bStmt})
+	j := 0
+	for _, aNodeInfo := range aNodesInfo {
+		bNodeInfo := matched[aNodeInfo]
+		logrus.Debugln(callFunc, "matched:", reflect.TypeOf(aNodeInfo), aNodeInfo, "::",
+			reflect.TypeOf(bNodeInfo), bNodeInfo)
+		if bNodeInfo == nil {
+			result = append(result, matching{
+				prev:            aNodeInfo.node,
+				positionChanged: false,
+				orderChanged:    false,
+			})
+		} else {
+			var orderChanged bool
+			if j > bNodeInfo.pos && aNodeInfo.pos != bNodeInfo.pos {
+				orderChanged = true
+			}
+			result = append(result, matching{
+				prev:            aNodeInfo.node,
+				next:            bNodeInfo.node,
+				positionChanged: aNodeInfo.pos != bNodeInfo.pos,
+				orderChanged:    orderChanged,
+			})
+			j = bNodeInfo.pos
+		}
 	}
 	return result
 }
