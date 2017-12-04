@@ -30,7 +30,7 @@ func CreateHistory(repoPath string, start, end string, withTests bool) (*objects
 	}
 
 	if commitIterator == nil {
-		return nil, fmt.Errorf("commitIterator is nil!")
+		return nil, fmt.Errorf("commitIterator is nil")
 	}
 
 	commitsData := make(map[string]*object.Commit)

@@ -13,42 +13,42 @@ func diffStmt(aStmt ast.Stmt, bNode ast.Node, mode Mode) Coloring {
 		return Coloring{NewColorChange(mode.ToColor(), aStmt)}
 	}
 	switch a := aStmt.(type) {
-	case *ast.BlockStmt:
-		return diffBlockStmt(a, b, mode)
-	case *ast.ForStmt:
-		return diffForStmt(a, b, mode)
-	case *ast.ExprStmt:
-		return diffExprStmt(a, b, mode)
-	case *ast.IfStmt:
-		return diffIfStmt(a, b, mode)
 	case *ast.AssignStmt:
 		return diffAssignStmt(a, b, mode)
+	case *ast.BlockStmt:
+		return diffBlockStmt(a, b, mode)
+	case *ast.BranchStmt:
+		return diffBranchStmt(a, b, mode)
+	case *ast.CaseClause:
+		return diffCaseClause(a, b, mode)
+	case *ast.CommClause:
+		return diffCommClause(a, b, mode)
+	case *ast.DeclStmt:
+		return diffDeclStmt(a, b, mode)
+	case *ast.DeferStmt:
+		return diffDeferStmt(a, b, mode)
+	case *ast.ExprStmt:
+		return diffExprStmt(a, b, mode)
+	case *ast.ForStmt:
+		return diffForStmt(a, b, mode)
+	case *ast.GoStmt:
+		return diffGoStmt(a, b, mode)
+	case *ast.IfStmt:
+		return diffIfStmt(a, b, mode)
+	case *ast.IncDecStmt:
+		return diffIncDecStmt(a, b, mode)
+	case *ast.RangeStmt:
+		return diffRangeStmt(a, b, mode)
+	case *ast.ReturnStmt:
+		return diffReturnStmt(a, b, mode)
+	case *ast.SelectStmt:
+		return diffSelectStmt(a, b, mode)
+	case *ast.SendStmt:
+		return diffSendStmt(a, b, mode)
 	case *ast.SwitchStmt:
 		return diffSwitchStmt(a, b, mode)
 	case *ast.TypeSwitchStmt:
 		return diffTypeSwitchStmt(a, b, mode)
-	case *ast.CaseClause:
-		return diffCaseClause(a, b, mode)
-	case *ast.DeclStmt:
-		return diffDeclStmt(a, b, mode)
-	case *ast.ReturnStmt:
-		return diffReturnStmt(a, b, mode)
-	case *ast.RangeStmt:
-		return diffRangeStmt(a, b, mode)
-	case *ast.IncDecStmt:
-		return diffIncDecStmt(a, b, mode)
-	case *ast.BranchStmt:
-		return diffBranchStmt(a, b, mode)
-	case *ast.GoStmt:
-		return diffGoStmt(a, b, mode)
-	case *ast.DeferStmt:
-		return diffDeferStmt(a, b, mode)
-	case *ast.SelectStmt:
-		return diffSelectStmt(a, b, mode)
-	case *ast.CommClause:
-		return diffCommClause(a, b, mode)
-	case *ast.SendStmt:
-		return diffSendStmt(a, b, mode)
 	default:
 		logrus.Errorln("diffStmt:", "not implemented case", reflect.TypeOf(a))
 		return Coloring{NewColorChange(mode.ToColor(), a)}
