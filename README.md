@@ -6,3 +6,6 @@ compare AST changes of go code in git repository
 
 # usage
 ``gohist -path path/to/go/reposotory``
+
+# help
+``gohist -help``
