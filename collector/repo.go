@@ -145,7 +145,11 @@ func createHistoryLine(commits map[string]*object.Commit, start, end string) (hi
 			commit := commits[hash.String()]
 			if commit != nil {
 				if hash.String() == end {
-					return append(filePath, commit)
+					history = append(filePath, commit)
+					for i, j := 0, len(history)-1; i < j; i, j = i+1, j-1 {
+						history[i], history[j] = history[j], history[i]
+					}
+					return history
 				}
 				newPath := make([]*object.Commit, len(filePath))
 				copy(newPath, filePath)
