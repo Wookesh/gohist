@@ -14,44 +14,44 @@ func diffExpr(aExpr ast.Expr, bNode ast.Node, mode Mode) Coloring {
 		return Coloring{NewColorChange(mode.ToColor(), aExpr)}
 	}
 	switch a := aExpr.(type) {
-	case *ast.CallExpr:
-		return diffCallExpr(a, bExpr, mode)
-	case *ast.SelectorExpr:
-		return diffSelectorExpr(a, bExpr, mode)
-	case *ast.Ident:
-		return diffIdent(a, bExpr, mode)
-	case *ast.BinaryExpr:
-		return diffBinaryExpr(a, bExpr, mode)
-	case *ast.StarExpr:
-		return diffStarExpr(a, bExpr, mode)
-	case *ast.BasicLit:
-		return diffBasicLit(a, bExpr, mode)
-	case *ast.TypeAssertExpr:
-		return diffTypeAssertExpr(a, bExpr, mode)
-	case *ast.CompositeLit:
-		return diffCompositeLit(a, bExpr, mode)
-	case *ast.FuncType:
-		return diffFuncType(a, bExpr, mode)
-	case *ast.UnaryExpr:
-		return diffUnaryExpr(a, bExpr, mode)
 	case *ast.ArrayType:
 		return diffArrayType(a, bExpr, mode)
+	case *ast.BasicLit:
+		return diffBasicLit(a, bExpr, mode)
+	case *ast.BinaryExpr:
+		return diffBinaryExpr(a, bExpr, mode)
+	case *ast.CallExpr:
+		return diffCallExpr(a, bExpr, mode)
+	case *ast.ChanType:
+		return diffChanType(a, bExpr, mode)
+	case *ast.CompositeLit:
+		return diffCompositeLit(a, bExpr, mode)
 	case *ast.FuncLit:
 		return diffFuncLit(a, bExpr, mode)
+	case *ast.FuncType:
+		return diffFuncType(a, bExpr, mode)
+	case *ast.Ident:
+		return diffIdent(a, bExpr, mode)
 	case *ast.IndexExpr:
 		return diffIndexExpr(a, bExpr, mode)
+	case *ast.InterfaceType:
+		return diffInterfaceType(a, bExpr, mode)
+	case *ast.KeyValueExpr:
+		return diffKeyValueExpr(a, bExpr, mode)
 	case *ast.MapType:
 		return diffMapType(a, bExpr, mode)
 	case *ast.ParenExpr:
 		return diffParenExpr(a, bExpr, mode)
+	case *ast.SelectorExpr:
+		return diffSelectorExpr(a, bExpr, mode)
 	case *ast.SliceExpr:
 		return diffSliceExpr(a, bExpr, mode)
-	case *ast.KeyValueExpr:
-		return diffKeyValueExpr(a, bExpr, mode)
-	case *ast.InterfaceType:
-		return diffInterfaceType(a, bExpr, mode)
-	case *ast.ChanType:
-		return diffChanType(a, bExpr, mode)
+	case *ast.StarExpr:
+		return diffStarExpr(a, bExpr, mode)
+	case *ast.TypeAssertExpr:
+		return diffTypeAssertExpr(a, bExpr, mode)
+	case *ast.UnaryExpr:
+		return diffUnaryExpr(a, bExpr, mode)
 	default:
 		logrus.Errorln("diffExpr:", "unimplemented case:", reflect.TypeOf(a))
 		return Coloring{NewColorChange(mode.ToColor(), a)}

@@ -9,9 +9,9 @@ import (
 )
 
 type context struct {
-	a     nodeContext
-	b     nodeContext
-	gobal vars
+	a      nodeContext
+	b      nodeContext
+	global vars
 }
 
 type nodeContext struct {
@@ -39,15 +39,15 @@ func diff(aNode, b ast.Node, mode Mode) (coloring Coloring) {
 	switch a := aNode.(type) {
 	case ast.Decl:
 		coloring = diffDecl(a, b, mode)
-	case ast.Stmt:
-		coloring = diffStmt(a, b, mode)
 	case ast.Expr:
 		coloring = diffExpr(a, b, mode)
+	case ast.Stmt:
+		coloring = diffStmt(a, b, mode)
 	// non interface nodes:
-	case *ast.FieldList:
-		coloring = diffFieldList(a, b, mode)
 	case *ast.Field:
 		coloring = diffField(a, b, mode)
+	case *ast.FieldList:
+		coloring = diffFieldList(a, b, mode)
 	case *ast.ValueSpec:
 		coloring = diffValueSpec(a, b, mode)
 	default:
