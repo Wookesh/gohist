@@ -27,9 +27,10 @@ func (t *Template) Render(w io.Writer, name string, data interface{}, c echo.Con
 }
 
 type Link struct {
-	Name  string
-	Len   int
-	Total int
+	Name    string
+	Len     int
+	Total   int
+	Deleted bool
 }
 
 type ListData struct {
@@ -50,12 +51,13 @@ func (h *handler) List(c echo.Context) error {
 	}
 	listData := &ListData{RepoName: h.repoName}
 	for i, fHistory := range h.history.Data {
-		if !onlyChanged || (onlyChanged && len(fHistory.History) > 1) {
+		if !onlyChanged || (onlyChanged && (len(fHistory.History) > 1 || fHistory.LifeTime == 1)) {
 			listData.Links = append(listData.Links,
 				Link{
-					Name:  i,
-					Len:   len(fHistory.History),
-					Total: fHistory.LifeTime,
+					Name:    i,
+					Len:     len(fHistory.History),
+					Total:   fHistory.LifeTime,
+					Deleted: fHistory.Deleted,
 				})
 		}
 	}
@@ -97,7 +99,7 @@ func (h *handler) Get(c echo.Context) error {
 	return c.Render(http.StatusOK, "diff.html", data)
 }
 
-func Run(history *objects.History, repoName string) {
+func Run(history *objects.History, repoName, port string) {
 	handler := handler{history: history, repoName: repoName}
 
 	funcMap := template.FuncMap{
@@ -111,8 +113,8 @@ func Run(history *objects.History, repoName string) {
 			return i - 1
 		},
 		"color": color,
-		"modifications": func(a, b int) string {
-			if b == 0 {
+		"modifications": func(a, b int, deleted bool) string {
+			if deleted || b == 0 {
 				return "dark"
 			}
 			stability := 1.0 - float64(a)/float64(b)
@@ -140,7 +142,7 @@ func Run(history *objects.History, repoName string) {
 
 	logrus.Infoln("GoHist:", "started web server")
 
-	if err := e.Start(":8000"); err != nil {
+	if err := e.Start(":" + port); err != nil {
 		logrus.Fatalln(err)
 	}
 }

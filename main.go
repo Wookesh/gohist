@@ -10,9 +10,10 @@ import (
 )
 
 var (
-	projectPath = flag.String("path", "/home/wookesh/GoProjects/src/github.com/wookesh/gohist", "")
-	start       = flag.String("start", "master", "")
-	end         = flag.String("end", "", "")
+	projectPath = flag.String("path", "", "path to repo")
+	port        = flag.String("port", "8000", "port for web server")
+	start       = flag.String("start", "master", "newest commit to parse")
+	end         = flag.String("end", "", "latest commit to parse")
 )
 
 func init() {
@@ -21,6 +22,11 @@ func init() {
 
 func main() {
 	flag.Parse()
+
+	if *projectPath == "" {
+		flag.PrintDefaults()
+		return
+	}
 
 	history, err := collector.CreateHistory(*projectPath, *start, *end, false)
 	if err != nil {
@@ -34,5 +40,5 @@ func main() {
 		repoName = *projectPath
 	}
 
-	ui.Run(history, repoName)
+	ui.Run(history, repoName, *port)
 }

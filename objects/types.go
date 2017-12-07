@@ -22,6 +22,7 @@ type FunctionHistory struct {
 	LifeTime        int
 	FirstAppearance time.Time
 	LastAppearance  time.Time
+	Deleted         bool
 }
 
 type HistoryElement struct {

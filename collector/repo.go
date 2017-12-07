@@ -117,6 +117,7 @@ func CreateHistory(repoPath string, start, end string, withTests bool) (*objects
 						Offset: 0,
 					})
 				}
+				funcHistory.Deleted = true
 			}
 		}
 	}
