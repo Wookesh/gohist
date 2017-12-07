@@ -2,6 +2,7 @@ package objects
 
 import (
 	"go/ast"
+	"time"
 
 	"gopkg.in/src-d/go-git.v4/plumbing/object"
 )
@@ -17,7 +18,10 @@ func NewHistory() *History {
 }
 
 type FunctionHistory struct {
-	History []*HistoryElement
+	History         []*HistoryElement
+	LifeTime        int
+	FirstAppearance time.Time
+	LastAppearance  time.Time
 }
 
 type HistoryElement struct {

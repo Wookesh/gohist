@@ -13,6 +13,7 @@ import (
 	"github.com/Sirupsen/logrus"
 	"github.com/wookesh/gohist/diff"
 	"github.com/wookesh/gohist/objects"
+	"github.com/wookesh/gohist/util"
 	git "gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/plumbing"
 	"gopkg.in/src-d/go-git.v4/plumbing/object"
@@ -80,10 +81,14 @@ func CreateHistory(repoPath string, start, end string, withTests bool) (*objects
 				for funcID, funcDecl := range functions {
 					funcHistory, ok := history.Data[funcID]
 					if !ok {
-						funcHistory = &objects.FunctionHistory{}
+						funcHistory = &objects.FunctionHistory{
+							FirstAppearance: util.Earlier(commit.Author.When, commit.Committer.When),
+						}
 						history.Data[funcID] = funcHistory
 					}
 					added[funcID] = true
+					funcHistory.LifeTime++
+					funcHistory.LastAppearance = util.Earlier(commit.Author.When, commit.Committer.When)
 					if len(funcHistory.History) > 0 {
 						last := len(funcHistory.History) - 1
 						if diff.IsSame(funcHistory.History[last].Func, funcDecl) {
@@ -162,23 +167,23 @@ func GetFunctions(src, pack string) (map[string]*ast.FuncDecl, error) {
 		return nil, err
 	}
 	functions := make(map[string]*ast.FuncDecl)
-	variables := make(map[string]*objects.Variable)
+	//variables := make(map[string]*objects.Variable)
 	for _, decl := range f.Decls {
 		if function, ok := decl.(*ast.FuncDecl); ok {
 			functions[pack+"."+createSignature(function)] = function
 		}
-		if v, ok := decl.(*ast.GenDecl); ok {
-			switch v.Tok {
-			case token.VAR:
-				gatherVariables(v, variables)
-			case token.TYPE:
-			case token.IMPORT:
-			case token.CONST:
-				gatherVariables(v, variables)
-			}
-		}
+		//if v, ok := decl.(*ast.GenDecl); ok {
+		//	switch v.Tok {
+		//	case token.VAR:
+		//		gatherVariables(v, variables)
+		//	case token.TYPE:
+		//	case token.IMPORT:
+		//	case token.CONST:
+		//		gatherVariables(v, variables)
+		//	}
+		//}
 	}
-	_ = variables
+	//_ = variables
 	return functions, nil
 }
 

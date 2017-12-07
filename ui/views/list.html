@@ -1,7 +1,30 @@
 <html>
+<head>
+    <meta charset="UTF-8">
+    <title>GoHist:: {{.RepoName}}</title>
+    <!-- Latest compiled and minified CSS -->
+    <link rel="stylesheet" href="/static/css/bootstrap.min.css">
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="/static/css/font-awesome.min.css">
+
+    <!-- JQuery -->
+    <script src="/static/js/jquery.min.js"></script>
+
+    <!-- Latest compiled and minified JavaScript -->
+    <script src="/static/js/bootstrap.min.js"></script>
+
+    <!-- Vue.js -->
+{{/*<script src="/static/js/vue.min.js"></script>*/}}
+{{/*<script src="/static/js/vue-resource.min.js"></script>*/}}
+</head>
 <body>
-{{range .}}
-    <a href="{{.Name}}/">{{.Name}} [{{.Len}}]</a><br>
-{{end}}
+<div class="container">
+    <div class="list-group col-md-6">
+    {{range .Links}}
+        <a href="{{.Name}}/?pos={{prev_int .Len}}" class="list-group-item list-group-item-action list-group-item-{{modifications .Len .Total}}">{{.Name}} <span class="badge badge-secondary badge-pill">{{.Len}}</span></a>
+    {{end}}
+    </div>
+</div>
 </body>
 </html>

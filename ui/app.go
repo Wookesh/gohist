@@ -14,7 +14,8 @@ import (
 )
 
 type handler struct {
-	history *objects.History
+	history  *objects.History
+	repoName string
 }
 
 type Template struct {
@@ -26,10 +27,15 @@ func (t *Template) Render(w io.Writer, name string, data interface{}, c echo.Con
 }
 
 type Link struct {
-	Name string
-	Len  int
+	Name  string
+	Len   int
+	Total int
 }
 
+type ListData struct {
+	RepoName string
+	Links    Links
+}
 type Links []Link
 
 func (l Links) Len() int           { return len(l) }
@@ -37,12 +43,24 @@ func (l Links) Swap(i, j int)      { l[i], l[j] = l[j], l[i] }
 func (l Links) Less(i, j int) bool { return l[i].Name < l[j].Name }
 
 func (h *handler) List(c echo.Context) error {
-	var items Links
-	for i, fHistory := range h.history.Data {
-		items = append(items, Link{i, len(fHistory.History)})
+	onlyChangedStr := c.QueryParam("only_changed")
+	onlyChanged, err := strconv.ParseBool(onlyChangedStr)
+	if err != nil {
+		onlyChanged = false
 	}
-	sort.Sort(items)
-	return c.Render(http.StatusOK, "list.html", items)
+	listData := &ListData{RepoName: h.repoName}
+	for i, fHistory := range h.history.Data {
+		if !onlyChanged || (onlyChanged && len(fHistory.History) > 1) {
+			listData.Links = append(listData.Links,
+				Link{
+					Name:  i,
+					Len:   len(fHistory.History),
+					Total: fHistory.LifeTime,
+				})
+		}
+	}
+	sort.Sort(listData.Links)
+	return c.Render(http.StatusOK, "list.html", listData)
 }
 
 type DiffView struct {
@@ -79,8 +97,8 @@ func (h *handler) Get(c echo.Context) error {
 	return c.Render(http.StatusOK, "diff.html", data)
 }
 
-func Run(history *objects.History) {
-	handler := handler{history: history}
+func Run(history *objects.History, repoName string) {
+	handler := handler{history: history, repoName: repoName}
 
 	funcMap := template.FuncMap{
 		"next": func(i int64) int64 {
@@ -93,6 +111,19 @@ func Run(history *objects.History) {
 			return i - 1
 		},
 		"color": color,
+		"modifications": func(a, b int) string {
+			if b == 0 {
+				return "dark"
+			}
+			stability := 1.0 - float64(a)/float64(b)
+			if stability >= 0.8 {
+				return "success"
+			} else if stability >= 0.5 {
+				return "warning"
+			} else {
+				return "danger"
+			}
+		},
 	}
 
 	t := &Template{

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>{{.diffView.Name}}</title>
+    <title>GoHist::{{.diffView.Name}}</title>
     <!-- Latest compiled and minified CSS -->
     <link rel="stylesheet" href="/static/css/bootstrap.min.css">
 
@@ -20,49 +20,58 @@
     {{/*<script src="/static/js/vue-resource.min.js"></script>*/}}
 </head>
 <body>
-<div class="container">
-    <div class="row">
-        <a href="/">Home</a>
-    </div>
-    <div class="row">
-        <div class="col-md-1">{{if gt .pos 0}}<a href="?pos={{prev (.pos)}}">Prev</a>{{end}}</div>
-        <div class="col-md-10">
-        {{range $i, $e := .diffView.History.History}}
-            {{if eq ($i) ($.pos) }} O {{else}} * {{end}}
-        {{end}}
-        </div>
-        <div class="col-md-1">{{if lt (.pos) (prev_int (len .diffView.History.History))}}<a href="?pos={{next (.pos)}}">Next</a>{{end}}</div>
-    </div>
-    {{with index .diffView.History.History .pos}}
-    <div class="row">
-        <div class="col-md-4" align="right">Author:</div><div class="col-md-8">{{.Commit.Author.Name}}</div>
-        <div class="col-md-4" align="right">Email:</div><div class="col-md-8">{{.Commit.Author.Email}}</div>
-        <div class="col-md-4" align="right">Hash:</div><div class="col-md-8">{{.Commit.Hash}}</div>
-        <div class="col-md-4" align="right">Message:</div><div class="col-md-8">{{.Commit.Message}}</div>
-    </div>
-    {{end}}
-    <div class="row">
-        <div class="col-md-6">
-            {{if gt (.pos) 0 }}
-                {{with index .diffView.History.History (prev .pos)}}
-                    <div class="row">{{.Commit.Hash}}</div>
-                    <div class="row">
-                        <pre style="background-color: #222222; color: white"><code>{{color .Text $.diffView.LeftDiff .Offset}}</code></pre>
-                    </div>
+<div class="container-fluid">
+    <div class="card border-info">
+        <div class="card-header">
+            <a class="btn btn-info" role="button" href="/">Home</a>
+            <div class="row">
+                <div class="col-md-1">{{if gt .pos 0}}<a class="btn btn-info" role="button" href="?pos={{prev (.pos)}}">Prev</a>{{end}}</div>
+                <div class="col-md-10">
+                {{range $i, $e := .diffView.History.History}}
+                    {{if eq ($i) ($.pos) }} O {{else}} * {{end}}
                 {{end}}
-            {{else}}
+                </div>
+                <div class="col-md-1">{{if lt (.pos) (prev_int (len .diffView.History.History))}}<a class="btn btn-info" role="button" href="?pos={{next (.pos)}}">Next</a>{{end}}</div>
+            </div>
+            {{with index .diffView.History.History .pos}}
+                <div class="row">
+                    <div class="col-md-2" align="right">Author:</div><div class="col-md-10">{{.Commit.Author.Name}}</div>
+                    <div class="col-md-2" align="right">Email:</div><div class="col-md-10">{{.Commit.Author.Email}}</div>
+                    <div class="col-md-2" align="right">Hash:</div><div class="col-md-10">{{.Commit.Hash}}</div>
+                    <div class="col-md-2" align="right">Date:</div><div class="col-md-10">{{.Commit.Author.When}}</div>
+                    <div class="col-md-2" align="right">Message:</div><div class="col-md-10">{{.Commit.Message}}</div>
+                </div>
             {{end}}
         </div>
-        <div class="col-md-6">
-            {{if lt (.pos) (len .diffView.History.History)}}
-                {{with index .diffView.History.History .pos}}
-                    <div class="row">{{.Commit.Hash}}</div>
-                    <div class="row">
-                        <pre style="background-color: #222222; color: white"><code>{{color .Text $.diffView.RightDiff .Offset}}</code></pre>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                {{if gt (.pos) 0 }}
+                    {{with index .diffView.History.History (prev .pos)}}
+                    <div class="card">
+                        <div class="card-header">{{.Commit.Hash}}</div>
+                        <div class="card-body">
+                            <pre style="background-color: #222222; color: white"><code>{{color .Text $.diffView.LeftDiff .Offset}}</code></pre>
+                        </div>
                     </div>
+                    {{end}}
+                {{else}}
                 {{end}}
-            {{else}}
-            {{end}}
+                </div>
+                <div class="col-md-6">
+                {{if lt (.pos) (len .diffView.History.History)}}
+                    {{with index .diffView.History.History .pos}}
+                        <div class="card">
+                            <div class="card-header">{{.Commit.Hash}}</div>
+                            <div class="card-body">
+                                <pre style="background-color: #222222; color: white"><code>{{color .Text $.diffView.RightDiff .Offset}}</code></pre>
+                            </div>
+                        </div>
+                    {{end}}
+                {{else}}
+                {{end}}
+                </div>
+            </div>
         </div>
     </div>
 </div>

@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"strings"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/wookesh/gohist/collector"
@@ -25,5 +26,13 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	ui.Run(history)
+	split := strings.Split(*projectPath, "/src/")
+	var repoName string
+	if len(split) >= 2 {
+		repoName = split[1]
+	} else {
+		repoName = *projectPath
+	}
+
+	ui.Run(history, repoName)
 }

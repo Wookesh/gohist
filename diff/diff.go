@@ -9,13 +9,13 @@ import (
 )
 
 type context struct {
-	a      nodeContext
-	b      nodeContext
-	global vars
+	a nodeContext
+	b nodeContext
 }
 
 type nodeContext struct {
-	vars vars
+	vars       vars
+	globalVars vars
 }
 
 type vars map[string][]token.Pos
