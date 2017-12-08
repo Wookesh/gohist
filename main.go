@@ -4,6 +4,8 @@ import (
 	"flag"
 	"strings"
 
+	"path/filepath"
+
 	"github.com/Sirupsen/logrus"
 	"github.com/wookesh/gohist/collector"
 	"github.com/wookesh/gohist/ui"
@@ -26,6 +28,13 @@ func main() {
 	if *projectPath == "" {
 		flag.PrintDefaults()
 		return
+	}
+
+	absProjectPath, err := filepath.Abs(*projectPath)
+	if err != nil {
+		logrus.Fatalln(err)
+	} else {
+		*projectPath = absProjectPath
 	}
 
 	history, err := collector.CreateHistory(*projectPath, *start, *end, false)

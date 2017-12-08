@@ -7,6 +7,10 @@ import (
 	"sort"
 	"strconv"
 
+	"path"
+
+	"os"
+
 	"github.com/Sirupsen/logrus"
 	"github.com/labstack/echo"
 	"github.com/wookesh/gohist/diff"
@@ -128,8 +132,10 @@ func Run(history *objects.History, repoName, port string) {
 		},
 	}
 
+	rootPath := path.Join(os.Getenv("GOPATH"), "src", "github.com", "wookesh", "gohist")
+
 	t := &Template{
-		templates: template.Must(template.New("sites").Funcs(funcMap).ParseGlob("ui/views/*.html")),
+		templates: template.Must(template.New("sites").Funcs(funcMap).ParseGlob(path.Join(rootPath, "ui/views/*.html"))),
 	}
 	e := echo.New()
 	e.HideBanner = true
@@ -138,7 +144,7 @@ func Run(history *objects.History, repoName, port string) {
 	e.GET("/", handler.List)
 	e.GET("/:name/", handler.Get)
 	e.GET("/:path/:name/", handler.Get)
-	e.Static("/static", "ui/static")
+	e.Static("/static", path.Join(rootPath, "ui/static"))
 
 	logrus.Infoln("GoHist:", "started web server")
 
