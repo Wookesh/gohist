@@ -4,6 +4,7 @@ import (
 	"html/template"
 	"io"
 	"net/http"
+	"net/url"
 	"sort"
 	"strconv"
 
@@ -54,11 +55,11 @@ func (h *handler) List(c echo.Context) error {
 		onlyChanged = false
 	}
 	listData := &ListData{RepoName: h.repoName}
-	for i, fHistory := range h.history.Data {
+	for fName, fHistory := range h.history.Data {
 		if !onlyChanged || (onlyChanged && (len(fHistory.History) > 1 || fHistory.LifeTime == 1)) {
 			listData.Links = append(listData.Links,
 				Link{
-					Name:    i,
+					Name:    fName,
 					Len:     len(fHistory.History),
 					Total:   fHistory.LifeTime,
 					Deleted: fHistory.Deleted,
@@ -78,16 +79,16 @@ type DiffView struct {
 
 func (h *handler) Get(c echo.Context) error {
 	funcName := c.Param("name")
-	pack := c.Param("path")
-	if pack != "" {
-		funcName = pack + "/" + funcName
+	funcName, err := url.QueryUnescape(funcName)
+	if err != nil {
+		return c.HTML(http.StatusNotFound, "NOT FOUND")
 	}
 	f, ok := h.history.Data[funcName]
 	if !ok {
-		c.HTML(http.StatusNotFound, "NOT FOUND")
+		return c.HTML(http.StatusNotFound, "NOT FOUND")
 	}
 	var pos int64
-	pos, err := strconv.ParseInt(c.QueryParam("pos"), 10, 32)
+	pos, err = strconv.ParseInt(c.QueryParam("pos"), 10, 32)
 	if err != nil {
 		pos = 0
 	}
@@ -130,6 +131,9 @@ func Run(history *objects.History, repoName, port string) {
 				return "danger"
 			}
 		},
+		"escape": func(s string) string {
+			return url.QueryEscape(s)
+		},
 	}
 
 	rootPath := path.Join(os.Getenv("GOPATH"), "src", "github.com", "wookesh", "gohist")
@@ -143,7 +147,6 @@ func Run(history *objects.History, repoName, port string) {
 
 	e.GET("/", handler.List)
 	e.GET("/:name/", handler.Get)
-	e.GET("/:path/:name/", handler.Get)
 	e.Static("/static", path.Join(rootPath, "ui/static"))
 
 	logrus.Infoln("GoHist:", "started web server")

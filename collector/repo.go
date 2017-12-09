@@ -74,7 +74,7 @@ func CreateHistory(repoPath string, start, end string, withTests bool) (*objects
 				if err != nil {
 					fmt.Println(err)
 				}
-				functions, err := GetFunctions(string(body), path.Dir(f.Name))
+				functions, err := GetFunctions(string(body), f.Name, path.Dir(f.Name))
 				if err != nil {
 					return err
 				}
@@ -165,7 +165,7 @@ func createHistoryLine(commits map[string]*object.Commit, start, end string) (hi
 	return
 }
 
-func GetFunctions(src, pack string) (map[string]*ast.FuncDecl, error) {
+func GetFunctions(src, fileName, pack string) (map[string]*ast.FuncDecl, error) {
 	fileSet := token.NewFileSet()
 	f, err := parser.ParseFile(fileSet, "", src, parser.AllErrors)
 	if err != nil {
@@ -175,7 +175,7 @@ func GetFunctions(src, pack string) (map[string]*ast.FuncDecl, error) {
 	//variables := make(map[string]*objects.Variable)
 	for _, decl := range f.Decls {
 		if function, ok := decl.(*ast.FuncDecl); ok {
-			functions[pack+"."+createSignature(function)] = function
+			functions[pack+"."+createSignature(function, fileName)] = function
 		}
 		//if v, ok := decl.(*ast.GenDecl); ok {
 		//	switch v.Tok {
@@ -205,35 +205,28 @@ func gatherVariables(v *ast.GenDecl, variables map[string]*objects.Variable) {
 	}
 }
 
-func createSignature(f *ast.FuncDecl) (signature string) {
+func createSignature(f *ast.FuncDecl, fileName string) (signature string) {
 	if f == nil {
 		return
 	}
-	//if f.Type.Params != nil {
-	//	for _, param := range f.Type.Params.List {
-	//		for _, name := range param.Names {
-	//			logrus.Infoln("param:", name.Name, getType(param.Type))
-	//		}
-	//	}
-	//}
-	//
-	//if f.Type.Results != nil {
-	//	for _, param := range f.Type.Results.List {
-	//		for _, name := range param.Names {
-	//			logrus.Infoln("result:", name.Name, getType(param.Type))
-	//		}
-	//	}
-	//}
+	name := f.Name.Name
+	if name == "init" {
+		name = fmt.Sprintf("%s[%s]", name, fileName)
+	}
 	if f.Recv != nil {
 		var recv []string
 		for _, param := range f.Recv.List {
+			if len(param.Names) == 0 {
+				recv = append(recv, getType(param.Type))
+			}
 			for range param.Names {
 				recv = append(recv, getType(param.Type))
 			}
 		}
-		return strings.Join(recv, ",") + "." + f.Name.Name
+
+		return strings.Join(recv, ",") + "." + name
 	}
-	return f.Name.Name
+	return name
 }
 
 func getType(x ast.Node) string {
