@@ -38,9 +38,11 @@ type Link struct {
 	Deleted bool
 }
 
-type ListData struct {
-	RepoName string
-	Links    Links
+type ListViewData struct {
+	RepoName   string
+	Links      Links
+	Stats      map[string]interface{}
+	ChartsData map[string]objects.ChartData
 }
 type Links []Link
 
@@ -54,7 +56,7 @@ func (h *handler) List(c echo.Context) error {
 	if err != nil {
 		onlyChanged = false
 	}
-	listData := &ListData{RepoName: h.repoName}
+	listData := &ListViewData{RepoName: h.repoName, Stats: h.history.Stats(), ChartsData: h.history.ChartsData()}
 	for fName, fHistory := range h.history.Data {
 		if !onlyChanged || (onlyChanged && (len(fHistory.History) > 1 || fHistory.LifeTime == 1)) {
 			listData.Links = append(listData.Links,

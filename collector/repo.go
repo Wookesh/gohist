@@ -57,6 +57,7 @@ func CreateHistory(repoPath string, start, end string, withTests bool) (*objects
 	history := objects.NewHistory()
 
 	for _, commit := range historyLine {
+		history.CommitsAnalyzed++
 		logrus.Debugln("CreateHistory:", commit.Hash)
 		files, err := commit.Files()
 		if err != nil {

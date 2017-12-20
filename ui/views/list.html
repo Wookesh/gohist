@@ -4,13 +4,48 @@
     <title>GoHist:: {{.RepoName}}</title>
     <link rel="stylesheet" href="/static/css/bootstrap.min.css">
     <script src="/static/js/bootstrap.min.js"></script>
+
+    <link href="/static/css/c3.min.css" rel="stylesheet">
+    <script src="https://d3js.org/d3.v3.js"></script>
+    <script src="/static/js/c3.min.js"></script>
 </head>
 <body>
 <div class="container">
-    <div class="list-group col-md-6">
-    {{range .Links}}
-        <a href="{{escape .Name}}/?pos={{prev_int .Len}}" class="list-group-item list-group-item-action list-group-item-{{modifications .Len .Total .Deleted}}">{{.Name}} <span class="badge badge-secondary badge-pill">{{.Len}}</span></a>
-    {{end}}
+    <div class="row">
+        <div class="list-group col-md-6">
+        {{range .Links}}
+            <a href="{{escape .Name}}/?pos={{prev_int .Len}}" class="list-group-item list-group-item-action list-group-item-{{modifications .Len .Total .Deleted}}">{{.Name}} <span class="badge badge-secondary badge-pill">{{.Len}}</span></a>
+        {{end}}
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    Stats
+                </div>
+                <div class="card-body">
+                    {{range $key, $value := .Stats}}
+                        <div class="row">
+                            <div class="col-md-5">{{$key}}</div><div class="col-md-7">{{$value}}</div>
+                        </div>
+                    {{end}}
+                    {{range $key, $value := .ChartsData}}
+                        <div id="{{ $key }}"></div>
+                        <script>
+                            var chart = c3.generate({
+                                bindto: '#{{ $key }}',
+                                data: {
+                                    x: 'x',
+                                    columns: [
+                                        ['x', {{ $value.X }}],
+                                        [{{ $value.YAxis }}, {{ $value.Y }}]
+                                    ]
+                                }
+                            });
+                        </script>
+                    {{end}}
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 </body>
