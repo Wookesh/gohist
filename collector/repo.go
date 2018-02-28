@@ -10,7 +10,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/wookesh/gohist/diff"
 	"github.com/wookesh/gohist/objects"
 	"github.com/wookesh/gohist/util"

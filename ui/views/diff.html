@@ -38,7 +38,7 @@
                     <div class="card">
                         <div class="card-header">{{.Commit.Hash}}</div>
                         <div class="card-body">
-                            <pre style="background-color: #222222; color: white"><code>{{color .Text $.diffView.LeftDiff .Offset}}</code></pre>
+                            <pre style="background-color: #222222; color: white; tab-size: 4"><code>{{color .Text $.diffView.LeftDiff .Offset}}</code></pre>
                         </div>
                     </div>
                     {{end}}
@@ -51,7 +51,7 @@
                         <div class="card">
                             <div class="card-header">{{.Commit.Hash}}</div>
                             <div class="card-body">
-                                <pre style="background-color: #222222; color: white"><code>{{color .Text $.diffView.RightDiff .Offset}}</code></pre>
+                                <pre style="background-color: #222222; color: white; tab-size: 4"><code>{{color .Text $.diffView.RightDiff .Offset}}</code></pre>
                             </div>
                         </div>
                     {{end}}

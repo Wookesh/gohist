@@ -5,15 +5,13 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
+	"path"
 	"sort"
 	"strconv"
 
-	"path"
-
-	"os"
-
-	"github.com/Sirupsen/logrus"
 	"github.com/labstack/echo"
+	"github.com/sirupsen/logrus"
 	"github.com/wookesh/gohist/diff"
 	"github.com/wookesh/gohist/objects"
 )
