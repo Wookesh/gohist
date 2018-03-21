@@ -79,7 +79,7 @@ func CreateHistory(repoPath string, start, end string, withTests bool) (*objects
 				if err != nil {
 					return err
 				}
-				for funcID, funcDecl := range functions {
+				for funcID, funcDeclaration := range functions {
 					funcHistory, ok := history.Data[funcID]
 					if !ok {
 						funcHistory = &objects.FunctionHistory{
@@ -92,17 +92,17 @@ func CreateHistory(repoPath string, start, end string, withTests bool) (*objects
 					funcHistory.LastAppearance = util.Earlier(commit.Author.When, commit.Committer.When)
 					if len(funcHistory.History) > 0 {
 						last := len(funcHistory.History) - 1
-						if diff.IsSame(funcHistory.History[last].Func, funcDecl) {
+						if diff.IsSame(funcHistory.History[last].Func, funcDeclaration) {
 							continue
 						}
 					}
-					text := string(body[funcDecl.Pos()-1 : funcDecl.End()-1])
+					text := string(body[funcDeclaration.Pos()-1 : funcDeclaration.End()-1])
 					funcHistory.History = append(funcHistory.History,
 						&objects.HistoryElement{
-							Func:   funcDecl,
+							Func:   funcDeclaration,
 							Commit: commit,
 							Text:   text,
-							Offset: int(funcDecl.Pos()),
+							Offset: int(funcDeclaration.Pos()),
 						})
 				}
 			}
