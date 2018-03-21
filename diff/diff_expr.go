@@ -4,7 +4,7 @@ import (
 	"go/ast"
 	"reflect"
 
-	"github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 func diffExpr(aExpr ast.Expr, bNode ast.Node, mode Mode) Coloring {

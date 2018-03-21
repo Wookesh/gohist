@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"sort"
 
-	"github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 type matchingElem struct {

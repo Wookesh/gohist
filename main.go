@@ -6,7 +6,7 @@ import (
 
 	"path/filepath"
 
-	"github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/wookesh/gohist/collector"
 	"github.com/wookesh/gohist/ui"
 )
