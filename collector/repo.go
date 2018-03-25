@@ -104,6 +104,9 @@ func CreateHistory(repoPath string, start, end string, withTests bool) (*objects
 							Text:   text,
 							Offset: int(funcDeclaration.Pos()),
 						})
+					if funcHistory.Deleted {
+						funcHistory.Deleted = false
+					}
 				}
 			}
 			return nil
@@ -163,7 +166,45 @@ func createHistoryLine(commits map[string]*object.Commit, start, end string) (hi
 	for i, j := 0, len(history)-1; i < j; i, j = i+1, j-1 {
 		history[i], history[j] = history[j], history[i]
 	}
+	logrus.Infoln("History line created")
 	return
+}
+
+func createHistoryLineLongest(commits map[string]*object.Commit, start, end string) (history []*object.Commit) {
+	logrus.Infoln("Creating history line")
+	rootNode, ok := commits[start]
+	if !ok {
+		return
+	}
+	history = getLongest(commits, make(map[string][]*object.Commit), rootNode, end)
+	logrus.Infoln("History line created")
+	return
+}
+
+func getLongest(commits map[string]*object.Commit, longest map[string][]*object.Commit, commit *object.Commit, end string) []*object.Commit {
+	if commit == nil {
+		return nil
+	}
+	if commit.Hash.String() == end {
+		return []*object.Commit{commit}
+	}
+	result, ok := longest[commit.Hash.String()]
+	if !ok {
+		var longestPath []*object.Commit
+		for _, hash := range commit.ParentHashes {
+			child := commits[hash.String()]
+			potential := getLongest(commits, longest, child, end)
+			if len(potential) > len(longestPath) {
+				longestPath = potential
+			}
+		}
+		longestPath = append(longestPath, commit)
+		longest[commit.Hash.String()] = longestPath
+		result = longestPath
+	}
+	toResponse := make([]*object.Commit, len(result))
+	copy(toResponse, result)
+	return toResponse
 }
 
 func GetFunctions(src, fileName, pack string) (map[string]*ast.FuncDecl, error) {

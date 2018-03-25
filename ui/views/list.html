@@ -23,26 +23,44 @@
                     Stats
                 </div>
                 <div class="card-body">
-                    {{range $key, $value := .Stats}}
-                        <div class="row">
-                            <div class="col-md-5">{{$key}}</div><div class="col-md-7">{{$value}}</div>
-                        </div>
-                    {{end}}
-                    {{range $key, $value := .ChartsData}}
-                        <div id="{{ $key }}"></div>
-                        <script>
-                            var chart = c3.generate({
-                                bindto: '#{{ $key }}',
-                                data: {
-                                    x: 'x',
-                                    columns: [
-                                        ['x', {{ $value.X }}],
-                                        [{{ $value.YAxis }}, {{ $value.Y }}]
-                                    ]
-                                }
-                            });
-                        </script>
-                    {{end}}
+                    <div>
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item">
+                            {{range $key, $value := .Stats}}
+                                <div class="row">
+                                    <div class="col-md-5">{{$key}}</div><div class="col-md-7">{{$value}}</div>
+                                </div>
+                            {{end}}
+                            </li>
+                            <li class="list-group-item">
+                            {{range $key, $value := .ChartsData}}
+                                <div>{{$value.Name}}</div>
+                                <div id="{{ $key }}"></div>
+                                <script>
+                                    var chart = c3.generate({
+                                        bindto: '#{{ $key }}',
+                                        data: {
+                                            x: 'x',
+                                            columns: [
+                                                ['x', {{ $value.X }}],
+                                                [{{ $value.YAxis }}, {{ $value.Y }}]
+                                            ]
+                                        }{{if eq $value.Type "timeseries"}},
+                                        axis: {
+                                            x: {
+                                                type: 'timeseries',
+                                                tick: {
+                                                    format: '%Y-%m-%d'
+                                                }
+                                            }
+                                        }
+                                    {{end}}
+                                    });
+                                </script>
+                            {{end}}
+                            </li>
+                        </ul>
+                    </div>
                 </div>
             </div>
         </div>
