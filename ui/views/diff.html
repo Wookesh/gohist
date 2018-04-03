@@ -19,7 +19,7 @@
                         {{range $i, $v := (index .diffView.History.Elements .pos).Parent}}
                             <div class="row">
                                 <a class="btn btn-success" role="button" href="?pos={{$.pos}}&cmp={{$i}}">Compare with</a>
-                                <a class="btn btn-info" role="button" href="?pos={{$v.Commit.Hash}}&cmp=0">Go to</a>
+                                <a class="btn btn-info" role="button" href="?pos={{$v.Commit.Hash}}">Go to</a>
                                 {{.Commit.Hash}}
                             </div>
                         {{end}}

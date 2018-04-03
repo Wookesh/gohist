@@ -92,10 +92,15 @@ func (h *handler) Get(c echo.Context) error {
 	}
 
 	pos := c.QueryParam("pos")
-	cmpStr := c.QueryParam("cmp")
-	cmp, _ := strconv.ParseInt(cmpStr, 10, 32)
+	cmp := c.QueryParam("cmp")
 	if _, ok := f.Elements[pos]; pos == "" || !ok {
 		pos = f.First.Commit.Hash.String()
+	}
+	if _, ok := f.Elements[cmp]; cmp == "" || !ok {
+		for sha := range f.Elements[pos].Parent { // get random
+			cmp = sha
+			break
+		}
 	}
 	var left, right diff.Coloring
 	if pos != f.First.Commit.Hash.String() {
@@ -112,7 +117,7 @@ func (h *handler) Get(c echo.Context) error {
 		Last:      f.Last.Commit.Hash.String(),
 		First:     f.First.Commit.Hash.String(),
 	}
-	data := map[string]interface{}{"pos": pos, "diffView": diffView, "cmp": int(cmp)}
+	data := map[string]interface{}{"pos": pos, "diffView": diffView, "cmp": cmp}
 	return c.Render(http.StatusOK, "diff.html", data)
 }
 

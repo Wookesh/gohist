@@ -172,7 +172,7 @@ func (fh *FunctionHistory) AddElement(decl *ast.FuncDecl, commit *object.Commit,
 	sha := commit.Hash.String()
 	fh.LifeTime++
 
-	var parents []*HistoryElement
+	parents := make(map[string]*HistoryElement)
 	// physical parent
 	anyDifferent := false
 	var parentMapping []string
@@ -192,7 +192,7 @@ func (fh *FunctionHistory) AddElement(decl *ast.FuncDecl, commit *object.Commit,
 				parentMapping = append(parentMapping, parent.Commit.Hash.String())
 			} else {
 				anyDifferent = true
-				parents = append(parents, parent)
+				parents[parentSHA] = parent
 			}
 		}
 	}
@@ -201,15 +201,16 @@ func (fh *FunctionHistory) AddElement(decl *ast.FuncDecl, commit *object.Commit,
 		return
 	}
 	element := &HistoryElement{
-		Func:   decl,
-		Commit: commit,
-		Parent: parents,
-		Text:   string(body[decl.Pos()-1 : decl.End()-1]),
-		Offset: int(decl.Pos()),
+		Func:     decl,
+		Commit:   commit,
+		Parent:   parents,
+		Children: make(map[string]*HistoryElement),
+		Text:     string(body[decl.Pos()-1 : decl.End()-1]),
+		Offset:   int(decl.Pos()),
 	}
 
 	for _, parent := range parents {
-		parent.Children = append(parent.Children, element)
+		parent.Children[sha] = element
 	}
 	fh.Elements[sha] = element
 	fh.parentMapping[sha] = []string{sha}
@@ -226,7 +227,7 @@ func (fh *FunctionHistory) Delete(commit *object.Commit) {
 
 	sha := commit.Hash.String()
 
-	var parents []*HistoryElement
+	parents := make(map[string]*HistoryElement)
 	var anyNotDeleted bool
 	// physical parent
 	for _, parent := range commit.ParentHashes {
@@ -244,20 +245,21 @@ func (fh *FunctionHistory) Delete(commit *object.Commit) {
 			if parent.Func != nil {
 				anyNotDeleted = true
 			}
-			parents = append(parents, parent)
+			parents[parentSHA] = parent
 		}
 	}
 	if !anyNotDeleted {
 		return
 	}
 	element := &HistoryElement{
-		Func:   nil,
-		Commit: commit,
-		Parent: parents,
+		Func:     nil,
+		Commit:   commit,
+		Parent:   parents,
+		Children: make(map[string]*HistoryElement),
 	}
 
 	for _, parent := range parents {
-		parent.Children = append(parent.Children, element)
+		parent.Children[sha] = element
 	}
 	fh.Elements[sha] = element
 	fh.parentMapping[sha] = []string{sha}
@@ -292,8 +294,8 @@ type HistoryElement struct {
 	Text   string
 	Offset int
 
-	Parent   []*HistoryElement
-	Children []*HistoryElement
+	Parent   map[string]*HistoryElement
+	Children map[string]*HistoryElement
 }
 
 type Variable struct {
