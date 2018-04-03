@@ -53,16 +53,16 @@ func (h *History) Stats() map[string]interface{} {
 	removed := 0
 	var mostChanged string
 	for name, history := range h.Data {
-		changes += len(history.History) - 1
-		if len(history.History) == 1 {
+		changes += len(history.Elements) - 1
+		if len(history.Elements) == 1 {
 			neverChanged++
 		}
 		if history.Deleted {
 			removed++
 		}
-		if len(history.History) > mostChangedCount {
+		if len(history.Elements) > mostChangedCount {
 			mostChanged = name
-			mostChangedCount = len(history.History)
+			mostChangedCount = len(history.Elements)
 		}
 	}
 	stats["Analyzed commits"] = h.CommitsAnalyzed
