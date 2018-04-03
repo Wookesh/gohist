@@ -40,7 +40,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	_ = history
+
 	split := strings.Split(*projectPath, "/src/")
 	var repoName string
 	if len(split) >= 2 {
