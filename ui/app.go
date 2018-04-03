@@ -31,6 +31,7 @@ func (t *Template) Render(w io.Writer, name string, data interface{}, c echo.Con
 
 type Link struct {
 	Name    string
+	First   string
 	Len     int
 	Total   int
 	Deleted bool
@@ -56,11 +57,12 @@ func (h *handler) List(c echo.Context) error {
 	}
 	listData := &ListViewData{RepoName: h.repoName, Stats: h.history.Stats(), ChartsData: h.history.ChartsData()}
 	for fName, fHistory := range h.history.Data {
-		if !onlyChanged || (onlyChanged && (len(fHistory.History) > 1 || fHistory.LifeTime == 1)) {
+		if !onlyChanged || (onlyChanged && (len(fHistory.Elements) > 1 || fHistory.LifeTime == 1)) {
 			listData.Links = append(listData.Links,
 				Link{
 					Name:    fName,
-					Len:     len(fHistory.History),
+					First:   fHistory.First.Commit.Hash.String(),
+					Len:     len(fHistory.Elements),
 					Total:   fHistory.LifeTime,
 					Deleted: fHistory.Deleted,
 				})
@@ -71,10 +73,11 @@ func (h *handler) List(c echo.Context) error {
 }
 
 type DiffView struct {
-	Name      string
-	History   *objects.FunctionHistory
-	LeftDiff  diff.Coloring
-	RightDiff diff.Coloring
+	Name        string
+	History     *objects.FunctionHistory
+	LeftDiff    diff.Coloring
+	RightDiff   diff.Coloring
+	First, Last string
 }
 
 func (h *handler) Get(c echo.Context) error {
@@ -87,20 +90,29 @@ func (h *handler) Get(c echo.Context) error {
 	if !ok {
 		return c.HTML(http.StatusNotFound, "NOT FOUND")
 	}
-	var pos int64
-	pos, err = strconv.ParseInt(c.QueryParam("pos"), 10, 32)
-	if err != nil {
-		pos = 0
+
+	pos := c.QueryParam("pos")
+	cmpStr := c.QueryParam("cmp")
+	cmp, _ := strconv.ParseInt(cmpStr, 10, 32)
+	if _, ok := f.Elements[pos]; pos == "" || !ok {
+		pos = f.First.Commit.Hash.String()
 	}
 	var left, right diff.Coloring
-	if pos > 0 {
-		left = diff.Diff(f.History[pos-1].Func, f.History[pos].Func, diff.ModeOld)
-		right = diff.Diff(f.History[pos].Func, f.History[pos-1].Func, diff.ModeNew)
+	if pos != f.First.Commit.Hash.String() {
+		left = diff.Diff(f.Elements[pos].Parent[cmp].Func, f.Elements[pos].Func, diff.ModeOld)
+		right = diff.Diff(f.Elements[pos].Func, f.Elements[pos].Parent[cmp].Func, diff.ModeNew)
 	} else {
-		right = diff.Diff(nil, f.History[pos].Func, diff.ModeNew)
+		right = diff.Diff(nil, f.Elements[pos].Func, diff.ModeNew)
 	}
-	diffView := &DiffView{Name: funcName, History: f, LeftDiff: left, RightDiff: right}
-	data := map[string]interface{}{"pos": pos, "diffView": diffView}
+	diffView := &DiffView{
+		Name:      funcName,
+		History:   f,
+		LeftDiff:  left,
+		RightDiff: right,
+		Last:      f.Last.Commit.Hash.String(),
+		First:     f.First.Commit.Hash.String(),
+	}
+	data := map[string]interface{}{"pos": pos, "diffView": diffView, "cmp": int(cmp)}
 	return c.Render(http.StatusOK, "diff.html", data)
 }
 

@@ -14,7 +14,7 @@
     <div class="row">
         <div class="list-group col-md-6">
         {{range .Links}}
-            <a href="{{escape .Name}}/?pos={{prev_int .Len}}" class="list-group-item list-group-item-action list-group-item-{{modifications .Len .Total .Deleted}}">{{.Name}} <span class="badge badge-secondary badge-pill">{{.Len}}</span></a>
+            <a href="{{escape .Name}}/?pos={{ .First }}" class="list-group-item list-group-item-action list-group-item-{{modifications .Len .Total .Deleted}}">{{.Name}} <span class="badge badge-secondary badge-pill">{{.Len}}</span></a>
         {{end}}
         </div>
         <div class="col-md-6">

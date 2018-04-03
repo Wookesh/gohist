@@ -7,15 +7,36 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
-	"github.com/sirupsen/logrus"
+	"github.com/wookesh/gohist/diff"
+	"github.com/wookesh/gohist/util"
 	"gopkg.in/src-d/go-git.v4/plumbing/object"
 )
 
 type History struct {
 	Data            map[string]*FunctionHistory
-	CommitsAnalyzed int
+	CommitsAnalyzed int32
+
+	m sync.Mutex
+}
+
+func (h *History) Get(funcID string) *FunctionHistory {
+	h.m.Lock()
+	defer h.m.Unlock()
+	funcHistory, ok := h.Data[funcID]
+	if !ok {
+		funcHistory = NewFunctionHistory(funcID)
+		h.Data[funcID] = funcHistory
+	}
+	return funcHistory
+}
+
+func (h *History) CheckForDeleted(commit *object.Commit) {
+	for _, fh := range h.Data {
+		fh.Delete(commit)
+	}
 }
 
 func NewHistory() *History {
@@ -45,7 +66,7 @@ func (h *History) Stats() map[string]interface{} {
 		}
 	}
 	stats["Analyzed commits"] = h.CommitsAnalyzed
-	stats["Changes per commit"] = changes / h.CommitsAnalyzed
+	stats["Changes per commit"] = changes / int(h.CommitsAnalyzed)
 	stats["Changes per function"] = float64(changes) / float64(len(h.Data))
 	stats["Never changed"] = neverChanged
 	stats["Functions"] = len(h.Data)
@@ -93,8 +114,8 @@ func (h *History) ChartsData() map[string]ChartData {
 	changesCount := make(map[int]int)
 	changedPerDate := make(map[Date]int)
 	for _, fHistory := range h.Data {
-		changesCount[len(fHistory.History)] += 1
-		for _, commit := range fHistory.History {
+		changesCount[len(fHistory.Elements)] += 1
+		for _, commit := range fHistory.Elements {
 			var date Date
 			date.Year, date.Month, date.Day = commit.Commit.Author.When.Date()
 			changedPerDate[date] += 1
@@ -119,9 +140,6 @@ func (h *History) ChartsData() map[string]ChartData {
 		Y: template.JS(strings.Join(yAxis2List, ",")), YAxis: "functions changed", Type: "timeseries",
 		Name: "functions changed per day",
 	}
-
-	logrus.Infoln(changesCount)
-
 	return charts
 }
 
@@ -131,6 +149,141 @@ type FunctionHistory struct {
 	FirstAppearance time.Time
 	LastAppearance  time.Time
 	Deleted         bool
+
+	ID            string
+	Elements      map[string]*HistoryElement
+	First, Last   *HistoryElement
+	parentMapping map[string][]string
+	m             sync.Mutex
+}
+
+func NewFunctionHistory(id string) *FunctionHistory {
+	return &FunctionHistory{
+		Elements:      make(map[string]*HistoryElement),
+		parentMapping: make(map[string][]string),
+		ID:            id,
+	}
+}
+
+func (fh *FunctionHistory) AddElement(decl *ast.FuncDecl, commit *object.Commit, body []byte) {
+	fh.m.Lock()
+	defer fh.m.Unlock()
+
+	sha := commit.Hash.String()
+	fh.LifeTime++
+
+	var parents []*HistoryElement
+	// physical parent
+	anyDifferent := false
+	var parentMapping []string
+	for _, parent := range commit.ParentHashes {
+		parentSHA := parent.String()
+		mapped, ok := fh.parentMapping[parentSHA]
+		if !ok {
+			continue
+		}
+		// logical parent
+		for _, parent := range mapped {
+			parent, ok := fh.Elements[parent]
+			if !ok {
+				continue
+			}
+			if diff.IsSame(parent.Func, decl) {
+				parentMapping = append(parentMapping, parent.Commit.Hash.String())
+			} else {
+				anyDifferent = true
+				parents = append(parents, parent)
+			}
+		}
+	}
+	if !anyDifferent && len(fh.Elements) > 0 {
+		fh.parentMapping[sha] = parentMapping
+		return
+	}
+	element := &HistoryElement{
+		Func:   decl,
+		Commit: commit,
+		Parent: parents,
+		Text:   string(body[decl.Pos()-1 : decl.End()-1]),
+		Offset: int(decl.Pos()),
+	}
+
+	for _, parent := range parents {
+		parent.Children = append(parent.Children, element)
+	}
+	fh.Elements[sha] = element
+	fh.parentMapping[sha] = []string{sha}
+}
+
+func (fh *FunctionHistory) Delete(commit *object.Commit) {
+	fh.m.Lock()
+	defer fh.m.Unlock()
+
+	_, ok := fh.parentMapping[commit.Hash.String()]
+	if ok {
+		return
+	}
+
+	sha := commit.Hash.String()
+
+	var parents []*HistoryElement
+	var anyNotDeleted bool
+	// physical parent
+	for _, parent := range commit.ParentHashes {
+		parentSHA := parent.String()
+		mapped, ok := fh.parentMapping[parentSHA]
+		if !ok {
+			continue
+		}
+		// logical parent
+		for _, parent := range mapped {
+			parent, ok := fh.Elements[parent]
+			if !ok {
+				continue
+			}
+			if parent.Func != nil {
+				anyNotDeleted = true
+			}
+			parents = append(parents, parent)
+		}
+	}
+	if !anyNotDeleted {
+		return
+	}
+	element := &HistoryElement{
+		Func:   nil,
+		Commit: commit,
+		Parent: parents,
+	}
+
+	for _, parent := range parents {
+		parent.Children = append(parent.Children, element)
+	}
+	fh.Elements[sha] = element
+	fh.parentMapping[sha] = []string{sha}
+	fh.Deleted = true
+}
+
+func (fh *FunctionHistory) PostProcess() {
+	fh.m.Lock()
+	defer fh.m.Unlock()
+	for _, elem := range fh.Elements {
+		thisTime := util.Earlier(elem.Commit.Author.When, elem.Commit.Committer.When)
+		if fh.First == nil {
+			fh.First = elem
+		} else {
+			if thisTime.Before(util.Earlier(fh.First.Commit.Author.When, fh.First.Commit.Committer.When)) {
+				fh.First = elem
+			}
+		}
+		if fh.Last == nil {
+			fh.Last = elem
+		} else {
+			if util.Earlier(fh.Last.Commit.Author.When, fh.Last.Commit.Committer.When).Before(thisTime) {
+				fh.Last = elem
+			}
+		}
+	}
 }
 
 type HistoryElement struct {
@@ -138,6 +291,9 @@ type HistoryElement struct {
 	Func   *ast.FuncDecl
 	Text   string
 	Offset int
+
+	Parent   []*HistoryElement
+	Children []*HistoryElement
 }
 
 type Variable struct {
