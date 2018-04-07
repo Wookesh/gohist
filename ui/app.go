@@ -93,6 +93,7 @@ func (h *handler) Get(c echo.Context) error {
 
 	pos := c.QueryParam("pos")
 	cmp := c.QueryParam("cmp")
+	useLCS := c.QueryParam("lcs")
 	if _, ok := f.Elements[pos]; pos == "" || !ok {
 		pos = f.First.Commit.Hash.String()
 	}
@@ -104,8 +105,14 @@ func (h *handler) Get(c echo.Context) error {
 	}
 	var left, right diff.Coloring
 	if pos != f.First.Commit.Hash.String() {
-		left = diff.Diff(f.Elements[pos].Parent[cmp].Func, f.Elements[pos].Func, diff.ModeOld)
-		right = diff.Diff(f.Elements[pos].Func, f.Elements[pos].Parent[cmp].Func, diff.ModeNew)
+		if useLCS == "yes" {
+			left = diff.LCS(f.Elements[pos].Parent[cmp].Text, f.Elements[pos].Text, f.Elements[pos].Parent[cmp].Offset, diff.ModeOld)
+			right = diff.LCS(f.Elements[pos].Parent[cmp].Text, f.Elements[pos].Text, f.Elements[pos].Offset, diff.ModeNew)
+		} else {
+			left = diff.Diff(f.Elements[pos].Parent[cmp].Func, f.Elements[pos].Func, diff.ModeOld)
+			right = diff.Diff(f.Elements[pos].Func, f.Elements[pos].Parent[cmp].Func, diff.ModeNew)
+		}
+
 	} else {
 		right = diff.Diff(nil, f.Elements[pos].Func, diff.ModeNew)
 	}
@@ -117,7 +124,7 @@ func (h *handler) Get(c echo.Context) error {
 		Last:      f.Last.Commit.Hash.String(),
 		First:     f.First.Commit.Hash.String(),
 	}
-	data := map[string]interface{}{"pos": pos, "diffView": diffView, "cmp": cmp}
+	data := map[string]interface{}{"pos": pos, "diffView": diffView, "cmp": cmp, "lcs": useLCS}
 	return c.Render(http.StatusOK, "diff.html", data)
 }
 

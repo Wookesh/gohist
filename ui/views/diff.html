@@ -11,15 +11,20 @@
     <div class="card border-info">
         <div class="card-header">
             <a class="btn btn-info" role="button" href="/">Home</a>
+            {{if eq .lcs "yes"}}
+                <a class="btn btn-info" role="button" href="?pos={{$.pos}}&cmp={{.cmp}}">AST diff</a>
+            {{else}}
+                <a class="btn btn-info" role="button" href="?pos={{$.pos}}&cmp={{.cmp}}&lcs=yes">LCS</a>
+            {{end}}
             <div class="row">
-                <div class="col-md-1">{{if ne .pos .diffView.First}}<a class="btn btn-info" role="button" href="?pos={{.diffView.First}}">First</a>{{end}}</div>
+                <div class="col-md-1">{{if ne .pos .diffView.First}}<a class="btn btn-info" role="button" href="?pos={{.diffView.First}}&lcs={{$.lcs}}">First</a>{{end}}</div>
                 <div class="col-md-10" align="center">
                     <div class="row">
                         <div class="col-md-2" align="right">
                         {{range $i, $v := (index .diffView.History.Elements .pos).Parent}}
                             <div class="row">
-                                <a class="btn btn-success" role="button" href="?pos={{$.pos}}&cmp={{$i}}">Compare with</a>
-                                <a class="btn btn-info" role="button" href="?pos={{$v.Commit.Hash}}">Go to</a>
+                                <a class="btn btn-success" role="button" href="?pos={{$.pos}}&cmp={{$i}}&lcs={{$.lcs}}">Compare with</a>
+                                <a class="btn btn-info" role="button" href="?pos={{$v.Commit.Hash}}&lcs={{$.lcs}}">Go to</a>
                                 {{.Commit.Hash}}
                             </div>
                         {{end}}
@@ -28,14 +33,14 @@
                         <div class="col-md-2" align="left">
                         {{range $i, $v := (index .diffView.History.Elements .pos).Children}}
                             <div class="row">
-                                <a class="btn btn-info" role="button" href="?pos={{$v.Commit.Hash}}&cmp=0">Go to</a>
+                                <a class="btn btn-info" role="button" href="?pos={{$v.Commit.Hash}}&cmp=0&lcs={{$.lcs}}">Go to</a>
                                 {{$v.Commit.Hash}}
                             </div>
                         {{end}}
                         </div>
                     </div>
                 </div>
-                <div class="col-md-1">{{if ne (.pos) .diffView.Last}}<a class="btn btn-info" role="button" href="?pos={{.diffView.Last}}">Last</a>{{end}}</div>
+                <div class="col-md-1">{{if ne (.pos) .diffView.Last}}<a class="btn btn-info" role="button" href="?pos={{.diffView.Last}}&lcs={{$.lcs}}">Last</a>{{end}}</div>
             </div>
             {{with index .diffView.History.Elements .pos}}
                 <div class="row">
