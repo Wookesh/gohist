@@ -66,7 +66,7 @@ func (h *History) Stats() map[string]interface{} {
 		}
 	}
 	stats["Analyzed commits"] = h.CommitsAnalyzed
-	stats["Changes per commit"] = changes / int(h.CommitsAnalyzed)
+	stats["Changes per commit"] = float64(changes) / float64(h.CommitsAnalyzed)
 	stats["Changes per function"] = float64(changes) / float64(len(h.Data))
 	stats["Never changed"] = neverChanged
 	stats["Functions"] = len(h.Data)
