@@ -36,6 +36,7 @@ func CreateHistory(repoPath string, start, end string, withTests bool) (*objects
 	}
 
 	commitsData := make(map[string]*object.Commit)
+	total := 0
 	commitIterator.ForEach(func(commit *object.Commit) error {
 		if commit == nil {
 			panic("commit is nil")
@@ -59,6 +60,7 @@ func CreateHistory(repoPath string, start, end string, withTests bool) (*objects
 	last, first, graph := createGraph(commitsData, start, end)
 	parentLocks := make(map[string]semaphore.Semaphore)
 	for sha, node := range graph {
+		total++
 		if len(node.Parents) > 0 {
 			s := semaphore.New(len(node.Parents))
 			s.Empty()
@@ -67,6 +69,7 @@ func CreateHistory(repoPath string, start, end string, withTests bool) (*objects
 			parentLocks[sha] = nil
 		}
 	}
+	done := int32(0)
 	queue := make(chan *Node, 1)
 	queue <- first
 	var wg sync.WaitGroup
@@ -75,6 +78,8 @@ func CreateHistory(repoPath string, start, end string, withTests bool) (*objects
 	for node := range queue {
 		wg.Add(1)
 		go func(node *Node) {
+			atomic.AddInt32(&done, 1)
+			logrus.Infoln("done:", atomic.LoadInt32(&done), "/", total)
 			for _, child := range node.Children {
 				defer func(child *Node) {
 					parentLocks[child.SHA()].V()
@@ -108,8 +113,7 @@ func CreateHistory(repoPath string, start, end string, withTests bool) (*objects
 					return err
 				}
 				for funcID, funcDeclaration := range functions {
-					funcHistory := history.Get(funcID)
-					funcHistory.AddElement(funcDeclaration, node.Commit, body)
+					history.Get(funcID).AddElement(funcDeclaration, node.Commit, body)
 				}
 				return nil
 			})

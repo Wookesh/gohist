@@ -153,14 +153,14 @@ type FunctionHistory struct {
 	ID            string
 	Elements      map[string]*HistoryElement
 	First, Last   *HistoryElement
-	parentMapping map[string][]string
+	parentMapping map[string]map[string]bool
 	m             sync.Mutex
 }
 
 func NewFunctionHistory(id string) *FunctionHistory {
 	return &FunctionHistory{
 		Elements:      make(map[string]*HistoryElement),
-		parentMapping: make(map[string][]string),
+		parentMapping: make(map[string]map[string]bool),
 		ID:            id,
 	}
 }
@@ -175,7 +175,7 @@ func (fh *FunctionHistory) AddElement(decl *ast.FuncDecl, commit *object.Commit,
 	parents := make(map[string]*HistoryElement)
 	// physical parent
 	anyDifferent := false
-	var parentMapping []string
+	parentMapping := make(map[string]bool)
 	for _, parent := range commit.ParentHashes {
 		parentSHA := parent.String()
 		mapped, ok := fh.parentMapping[parentSHA]
@@ -183,16 +183,17 @@ func (fh *FunctionHistory) AddElement(decl *ast.FuncDecl, commit *object.Commit,
 			continue
 		}
 		// logical parent
-		for _, parent := range mapped {
+		for parent := range mapped {
+			parentSHA = parent
 			parent, ok := fh.Elements[parent]
 			if !ok {
 				continue
 			}
+			parents[parentSHA] = parent
 			if diff.IsSame(parent.Func, decl) {
-				parentMapping = append(parentMapping, parent.Commit.Hash.String())
+				parentMapping[parent.Commit.Hash.String()] = true
 			} else {
 				anyDifferent = true
-				parents[parentSHA] = parent
 			}
 		}
 	}
@@ -213,7 +214,7 @@ func (fh *FunctionHistory) AddElement(decl *ast.FuncDecl, commit *object.Commit,
 		parent.Children[sha] = element
 	}
 	fh.Elements[sha] = element
-	fh.parentMapping[sha] = []string{sha}
+	fh.parentMapping[sha] = map[string]bool{sha: true}
 }
 
 func (fh *FunctionHistory) Delete(commit *object.Commit) {
@@ -237,7 +238,7 @@ func (fh *FunctionHistory) Delete(commit *object.Commit) {
 			continue
 		}
 		// logical parent
-		for _, parent := range mapped {
+		for parent := range mapped {
 			parent, ok := fh.Elements[parent]
 			if !ok {
 				continue
@@ -262,7 +263,7 @@ func (fh *FunctionHistory) Delete(commit *object.Commit) {
 		parent.Children[sha] = element
 	}
 	fh.Elements[sha] = element
-	fh.parentMapping[sha] = []string{sha}
+	fh.parentMapping[sha] = map[string]bool{sha: true}
 	fh.Deleted = true
 }
 

@@ -2,8 +2,11 @@ package main
 
 import (
 	"flag"
+	_ "net/http/pprof"
 	"path/filepath"
 	"strings"
+
+	"net/http"
 
 	"github.com/sirupsen/logrus"
 	"github.com/wookesh/gohist/collector"
@@ -23,6 +26,8 @@ func init() {
 
 func main() {
 	flag.Parse()
+
+	go func() { http.ListenAndServe(":6060", nil) }()
 
 	if *projectPath == "" {
 		flag.PrintDefaults()

@@ -97,24 +97,25 @@ func (h *handler) Get(c echo.Context) error {
 	if _, ok := f.Elements[pos]; pos == "" || !ok {
 		pos = f.First.Commit.Hash.String()
 	}
-	if _, ok := f.Elements[cmp]; cmp == "" || !ok {
-		for sha := range f.Elements[pos].Parent { // get random
+	element := f.Elements[pos]
+	if _, ok := element.Parent[cmp]; cmp == "" || !ok {
+		for sha := range element.Parent { // get random
 			cmp = sha
 			break
 		}
 	}
+	comparedElement := f.Elements[cmp]
 	var left, right diff.Coloring
 	if pos != f.First.Commit.Hash.String() {
 		if useLCS == "yes" {
-			left = diff.LCS(f.Elements[pos].Parent[cmp].Text, f.Elements[pos].Text, f.Elements[pos].Parent[cmp].Offset, diff.ModeOld)
-			right = diff.LCS(f.Elements[pos].Parent[cmp].Text, f.Elements[pos].Text, f.Elements[pos].Offset, diff.ModeNew)
+			left = diff.LCS(comparedElement.Text, element.Text, comparedElement.Offset, diff.ModeOld)
+			right = diff.LCS(comparedElement.Text, element.Text, element.Offset, diff.ModeNew)
 		} else {
-			left = diff.Diff(f.Elements[pos].Parent[cmp].Func, f.Elements[pos].Func, diff.ModeOld)
-			right = diff.Diff(f.Elements[pos].Func, f.Elements[pos].Parent[cmp].Func, diff.ModeNew)
+			left = diff.Diff(comparedElement.Func, element.Func, diff.ModeOld)
+			right = diff.Diff(element.Func, comparedElement.Func, diff.ModeNew)
 		}
-
 	} else {
-		right = diff.Diff(nil, f.Elements[pos].Func, diff.ModeNew)
+		right = diff.Diff(nil, element.Func, diff.ModeNew)
 	}
 	diffView := &DiffView{
 		Name:      funcName,
