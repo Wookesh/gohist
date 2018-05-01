@@ -14,7 +14,7 @@ import (
 )
 
 var (
-	projectPath = flag.String("path", "", "path to repo")
+	projectPath = flag.String("path", ".", "path to repo")
 	port        = flag.String("port", "8000", "port for web server")
 	start       = flag.String("start", "master", "newest commit to parse")
 	end         = flag.String("end", "", "latest commit to parse")

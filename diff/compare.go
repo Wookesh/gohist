@@ -12,7 +12,6 @@ import (
 
 func compare(aNode, bNode ast.Node) (score float64) {
 	defer func() { logrus.Debugln("compare:", "return:", score) }()
-	logrus.Debugln("compare:", aNode, bNode)
 	if aNode == nil {
 		if bNode == nil {
 			return 1.0
