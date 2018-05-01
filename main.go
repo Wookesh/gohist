@@ -18,14 +18,17 @@ var (
 	port        = flag.String("port", "8000", "port for web server")
 	start       = flag.String("start", "master", "newest commit to parse")
 	end         = flag.String("end", "", "latest commit to parse")
+	debug       = flag.Bool("debug", false, "Run debug mode")
 )
-
-func init() {
-	logrus.SetLevel(logrus.InfoLevel)
-}
 
 func main() {
 	flag.Parse()
+
+	if *debug {
+		logrus.SetLevel(logrus.DebugLevel)
+	} else {
+		logrus.SetLevel(logrus.InfoLevel)
+	}
 
 	go func() { http.ListenAndServe(":6060", nil) }()
 
