@@ -106,16 +106,18 @@ func (h *handler) Get(c echo.Context) error {
 	}
 	comparedElement := f.Elements[cmp]
 	var left, right diff.Coloring
-	if pos != f.First.Commit.Hash.String() {
+	switch pos {
+	case f.First.Commit.Hash.String():
+		right = diff.Diff(nil, element.Func, diff.ModeNew)
+	default:
 		if useLCS == "yes" {
 			left = diff.LCS(comparedElement.Text, element.Text, comparedElement.Offset, diff.ModeOld)
 			right = diff.LCS(comparedElement.Text, element.Text, element.Offset, diff.ModeNew)
+
 		} else {
 			left = diff.Diff(comparedElement.Func, element.Func, diff.ModeOld)
 			right = diff.Diff(element.Func, comparedElement.Func, diff.ModeNew)
 		}
-	} else {
-		right = diff.Diff(nil, element.Func, diff.ModeNew)
 	}
 	diffView := &DiffView{
 		Name:      funcName,

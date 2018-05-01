@@ -15,6 +15,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/wookesh/gohist/objects"
 	"github.com/wookesh/semaphore"
+	"gitlab2.websensa.com/ma/websensa/logger"
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/plumbing"
 	"gopkg.in/src-d/go-git.v4/plumbing/object"
@@ -110,7 +111,8 @@ func CreateHistory(repoPath string, start, end string, withTests bool) (*objects
 				}
 				functions, err := GetFunctions(string(body), f.Name, path.Dir(f.Name))
 				if err != nil {
-					return err
+					logger.Warningln("CreateHistory:", "parse error:", err, f.Name)
+					return nil
 				}
 				for funcID, funcDeclaration := range functions {
 					history.Get(funcID).AddElement(funcDeclaration, node.Commit, body)

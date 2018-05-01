@@ -34,6 +34,8 @@ func (h *History) Get(funcID string) *FunctionHistory {
 }
 
 func (h *History) CheckForDeleted(commit *object.Commit) {
+	h.m.Lock()
+	defer h.m.Unlock()
 	for _, fh := range h.Data {
 		fh.Delete(commit)
 	}
@@ -243,6 +245,7 @@ func (fh *FunctionHistory) Delete(commit *object.Commit) {
 		}
 		// logical parent
 		for parent := range mapped {
+			parentSHA = parent
 			parent, ok := fh.Elements[parent]
 			if !ok {
 				continue
@@ -261,6 +264,7 @@ func (fh *FunctionHistory) Delete(commit *object.Commit) {
 		Commit:   commit,
 		Parent:   parents,
 		Children: make(map[string]*HistoryElement),
+		New:      false,
 	}
 
 	for _, parent := range parents {
