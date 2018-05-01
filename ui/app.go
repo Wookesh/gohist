@@ -62,7 +62,7 @@ func (h *handler) List(c echo.Context) error {
 				Link{
 					Name:    fName,
 					First:   fHistory.First.Commit.Hash.String(),
-					Len:     len(fHistory.Elements),
+					Len:     fHistory.VersionsCount(),
 					Total:   fHistory.LifeTime,
 					Deleted: fHistory.Deleted,
 				})

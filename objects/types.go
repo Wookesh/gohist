@@ -53,16 +53,17 @@ func (h *History) Stats() map[string]interface{} {
 	removed := 0
 	var mostChanged string
 	for name, history := range h.Data {
-		changes += len(history.Elements) - 1
-		if len(history.Elements) == 1 {
+		versions := history.VersionsCount()
+		changes += versions - 1
+		if versions == 1 {
 			neverChanged++
 		}
 		if history.Deleted {
 			removed++
 		}
-		if len(history.Elements) > mostChangedCount {
+		if versions > mostChangedCount {
 			mostChanged = name
-			mostChangedCount = len(history.Elements)
+			mostChangedCount = versions
 		}
 	}
 	stats["Analyzed commits"] = h.CommitsAnalyzed
@@ -114,7 +115,7 @@ func (h *History) ChartsData() map[string]ChartData {
 	changesCount := make(map[int]int)
 	changedPerDate := make(map[Date]int)
 	for _, fHistory := range h.Data {
-		changesCount[len(fHistory.Elements)] += 1
+		changesCount[fHistory.VersionsCount()] += 1
 		for _, commit := range fHistory.Elements {
 			var date Date
 			date.Year, date.Month, date.Day = commit.Commit.Author.When.Date()
@@ -175,6 +176,7 @@ func (fh *FunctionHistory) AddElement(decl *ast.FuncDecl, commit *object.Commit,
 	parents := make(map[string]*HistoryElement)
 	// physical parent
 	anyDifferent := false
+	anySame := false
 	parentMapping := make(map[string]bool)
 	for _, parent := range commit.ParentHashes {
 		parentSHA := parent.String()
@@ -191,6 +193,7 @@ func (fh *FunctionHistory) AddElement(decl *ast.FuncDecl, commit *object.Commit,
 			}
 			parents[parentSHA] = parent
 			if diff.IsSame(parent.Func, decl) {
+				anySame = true
 				parentMapping[parent.Commit.Hash.String()] = true
 			} else {
 				anyDifferent = true
@@ -208,6 +211,7 @@ func (fh *FunctionHistory) AddElement(decl *ast.FuncDecl, commit *object.Commit,
 		Children: make(map[string]*HistoryElement),
 		Text:     string(body[decl.Pos()-1 : decl.End()-1]),
 		Offset:   int(decl.Pos()),
+		New:      !anySame,
 	}
 
 	for _, parent := range parents {
@@ -289,11 +293,22 @@ func (fh *FunctionHistory) PostProcess() {
 	}
 }
 
+func (fh *FunctionHistory) VersionsCount() int {
+	versions := 0
+	for _, elem := range fh.Elements {
+		if elem.New {
+			versions++
+		}
+	}
+	return versions
+}
+
 type HistoryElement struct {
 	Commit *object.Commit
 	Func   *ast.FuncDecl
 	Text   string
 	Offset int
+	New    bool
 
 	Parent   map[string]*HistoryElement
 	Children map[string]*HistoryElement
