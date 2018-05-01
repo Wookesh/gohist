@@ -616,7 +616,7 @@ func IsSame(aNode, bNode ast.Node) bool {
 				return false
 			}
 		}
-		return IsSame(a.Key, b.Key) && IsSame(a.Value, b.Value) && IsSame(a.X, b.X)
+		return IsSame(a.Key, b.Key) && IsSame(a.Value, b.Value) && IsSame(a.X, b.X) && IsSame(a.Body, b.Body)
 	case *ast.ReturnStmt:
 		b, ok := bNode.(*ast.ReturnStmt)
 		if !ok {
