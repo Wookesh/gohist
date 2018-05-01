@@ -221,6 +221,9 @@ func (fh *FunctionHistory) AddElement(decl *ast.FuncDecl, commit *object.Commit,
 	}
 	fh.Elements[sha] = element
 	fh.parentMapping[sha] = map[string]bool{sha: true}
+	if fh.Deleted {
+		fh.Deleted = false
+	}
 }
 
 func (fh *FunctionHistory) Delete(commit *object.Commit) {
