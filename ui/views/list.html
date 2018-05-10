@@ -40,9 +40,9 @@
                                     var chart = c3.generate({
                                         bindto: '#{{ $key }}',
                                         data: {
-                                            x: 'x',
+                                            {{if ne $value.Type "datetimeseries"}}x: 'x',{{end}}
                                             columns: [
-                                                ['x', {{ $value.X }}],
+                                                {{if ne $value.Type "datetimeseries"}}['x', {{ $value.X }}],{{end}}
                                                 [{{ $value.YAxis }}, {{ $value.Y }}]
                                             ]
                                         }{{if eq $value.Type "timeseries"}},
@@ -52,6 +52,15 @@
                                                 tick: {
                                                     format: '%Y-%m-%d'
                                                 }
+                                            }
+                                        }{{else if eq $value.Type "datetimeseries"}},
+                                        axis: {
+                                            x: {
+                                                type: 'category',
+                                                categories: [{{$value.X}}],
+                                                // tick: {
+                                                //     format: '%Y-%m-%dT%H:%M:%S'
+                                                // }
                                             }
                                         }
                                     {{end}}

@@ -18,6 +18,7 @@ import (
 type History struct {
 	Data            map[string]*FunctionHistory
 	CommitsAnalyzed int32
+	CountPerCommit  map[time.Time]int
 
 	m sync.Mutex
 }
@@ -33,6 +34,10 @@ func (h *History) Get(funcID string) *FunctionHistory {
 	return funcHistory
 }
 
+func (h *History) Mark(sha time.Time, count int) {
+	h.CountPerCommit[sha] = count
+}
+
 func (h *History) CheckForDeleted(commit *object.Commit) {
 	h.m.Lock()
 	defer h.m.Unlock()
@@ -43,7 +48,8 @@ func (h *History) CheckForDeleted(commit *object.Commit) {
 
 func NewHistory() *History {
 	return &History{
-		Data: make(map[string]*FunctionHistory),
+		Data:           make(map[string]*FunctionHistory),
+		CountPerCommit: make(map[time.Time]int),
 	}
 }
 
@@ -111,6 +117,25 @@ func (d Dates) Swap(i, j int) {
 	d[i], d[j] = d[j], d[i]
 }
 
+type DateCount struct {
+	Date  time.Time
+	Count int
+}
+
+type DateCounts []DateCount
+
+func (d DateCounts) Len() int {
+	return len(d)
+}
+
+func (d DateCounts) Less(i, j int) bool {
+	return d[i].Date.Before(d[j].Date)
+}
+
+func (d DateCounts) Swap(i, j int) {
+	d[i], d[j] = d[j], d[i]
+}
+
 func (h *History) ChartsData() map[string]ChartData {
 	charts := make(map[string]ChartData)
 
@@ -143,6 +168,28 @@ func (h *History) ChartsData() map[string]ChartData {
 		Y: template.JS(strings.Join(yAxis2List, ",")), YAxis: "functions changed", Type: "timeseries",
 		Name: "functions changed per day",
 	}
+
+	var dateCounts DateCounts
+	for date, count := range h.CountPerCommit {
+		dateCounts = append(dateCounts, DateCount{date, count})
+	}
+
+	sort.Sort(dateCounts)
+
+	var dates, counts []string
+	for _, d := range dateCounts {
+		dates = append(dates, "'"+d.Date.Format("2006-01-02T15:04:05")+"'")
+		counts = append(counts, strconv.FormatInt(int64(d.Count), 10))
+	}
+
+	charts["functions_count_in_time"] = ChartData{
+		Y:     template.JS(strings.Join(counts, ",")),
+		X:     template.JS(strings.Join(dates, ",")),
+		YAxis: "functions count",
+		Type:  "datetimeseries",
+		Name:  "functions count in time",
+	}
+
 	return charts
 }
 
