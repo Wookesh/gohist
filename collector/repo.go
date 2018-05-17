@@ -96,7 +96,12 @@ func CreateHistory(repoPath string, start, end string, withTests bool) (*objects
 				logrus.Fatalln(err)
 			}
 			var count int32
+			var changed int32
 			err = files.ForEach(func(f *object.File) error {
+				if strings.Contains(f.Name, "vendor") || strings.Contains(f.Name, "Godeps") {
+					// skip
+					return nil
+				}
 				if !strings.HasSuffix(f.Name, ".go") || (strings.HasSuffix(f.Name, "_test.go") && !withTests) {
 					return nil
 				}
@@ -116,7 +121,10 @@ func CreateHistory(repoPath string, start, end string, withTests bool) (*objects
 					return nil
 				}
 				for funcID, funcDeclaration := range functions {
-					history.Get(funcID).AddElement(funcDeclaration, node.Commit, body)
+					added := history.Get(funcID).AddElement(funcDeclaration, node.Commit, body)
+					if added {
+						atomic.AddInt32(&changed, 1)
+					}
 					atomic.AddInt32(&count, 1)
 				}
 				return nil
@@ -124,6 +132,11 @@ func CreateHistory(repoPath string, start, end string, withTests bool) (*objects
 			if err != nil {
 				logrus.Fatalln(err)
 			}
+
+			if changed > history.MaxChanged {
+				history.MaxChanged = changed
+			}
+
 			atomic.AddInt32(&history.CommitsAnalyzed, 1)
 			history.Mark(node.Commit.Author.When, int(count))
 			history.CheckForDeleted(node.Commit)

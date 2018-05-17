@@ -13,11 +13,13 @@ import (
 	"github.com/wookesh/gohist/diff"
 	"github.com/wookesh/gohist/util"
 	"gopkg.in/src-d/go-git.v4/plumbing/object"
+	"github.com/sirupsen/logrus"
 )
 
 type History struct {
 	Data            map[string]*FunctionHistory
 	CommitsAnalyzed int32
+	MaxChanged int32
 	CountPerCommit  map[time.Time]int
 
 	m sync.Mutex
@@ -35,7 +37,9 @@ func (h *History) Get(funcID string) *FunctionHistory {
 }
 
 func (h *History) Mark(sha time.Time, count int) {
+	h.m.Lock()
 	h.CountPerCommit[sha] = count
+	h.m.Unlock()
 }
 
 func (h *History) CheckForDeleted(commit *object.Commit) {
@@ -77,10 +81,22 @@ func (h *History) Stats() map[string]interface{} {
 	stats["Analyzed commits"] = h.CommitsAnalyzed
 	stats["Changes per commit"] = float64(changes) / float64(h.CommitsAnalyzed)
 	stats["Changes per function"] = float64(changes) / float64(len(h.Data))
+	stats["Max changes in commit"] = h.MaxChanged
 	stats["Never changed"] = neverChanged
 	stats["Functions"] = len(h.Data)
 	stats["Most changed"] = fmt.Sprintf("%v [%v]", mostChanged, mostChangedCount)
 	stats["Removed"] = removed
+	logrus.Infof("%v,%v,%v,%v,%v,%v,%v,%v",
+		stats["Analyzed commits"],
+		stats["Changes per commit"],
+		stats["Changes per function"],
+		stats["Max changes in commit"],
+		stats["Never changed"],
+		stats["Functions"],
+		mostChangedCount,
+		stats["Removed"],
+	)
+
 	return stats
 }
 
@@ -215,7 +231,7 @@ func NewFunctionHistory(id string) *FunctionHistory {
 	}
 }
 
-func (fh *FunctionHistory) AddElement(decl *ast.FuncDecl, commit *object.Commit, body []byte) {
+func (fh *FunctionHistory) AddElement(decl *ast.FuncDecl, commit *object.Commit, body []byte) bool {
 	fh.m.Lock()
 	defer fh.m.Unlock()
 
@@ -251,7 +267,7 @@ func (fh *FunctionHistory) AddElement(decl *ast.FuncDecl, commit *object.Commit,
 	}
 	if !anyDifferent && len(fh.Elements) > 0 {
 		fh.parentMapping[sha] = parentMapping
-		return
+		return false
 	}
 	element := &HistoryElement{
 		Func:     decl,
@@ -271,6 +287,7 @@ func (fh *FunctionHistory) AddElement(decl *ast.FuncDecl, commit *object.Commit,
 	if fh.Deleted {
 		fh.Deleted = false
 	}
+	return !anySame
 }
 
 func (fh *FunctionHistory) Delete(commit *object.Commit) {
