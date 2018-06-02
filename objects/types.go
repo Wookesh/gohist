@@ -100,12 +100,25 @@ func (h *History) Stats() map[string]interface{} {
 	return stats
 }
 
+type PieRow struct {
+	Name string
+	Value int
+}
+
+func PieRowsFromMap(m map[string]int) (rows []PieRow) {
+	rows = append(rows, PieRow{"stable", m["stable"]})
+	rows = append(rows, PieRow{"modified", m["modified"]})
+	rows = append(rows, PieRow{"active", m["active"]})
+	return
+}
+
 type ChartData struct {
 	X     template.JS
 	YAxis string
 	Y     template.JS
 	Type  string
 	Name  string
+	PieData []PieRow
 }
 
 type Date struct {
@@ -152,13 +165,26 @@ func (d DateCounts) Swap(i, j int) {
 	d[i], d[j] = d[j], d[i]
 }
 
+func ToStabilityGroup(stability float64) string {
+	if stability >= 0.8 {
+		return "stable"
+	}
+	if stability >= 0.5 {
+		return "modified"
+	}
+	return "active"
+}
+
 func (h *History) ChartsData() map[string]ChartData {
 	charts := make(map[string]ChartData)
 
 	changesCount := make(map[int]int)
 	changedPerDate := make(map[Date]int)
+	stabilityVersions := map[string]int{"stable": 0, "modified": 0, "active": 0}
 	for _, fHistory := range h.Data {
 		changesCount[fHistory.VersionsCount()] += 1
+		stability := 1.0 - float64(fHistory.VersionsCount()) / float64(fHistory.LifeTime)
+		stabilityVersions[ToStabilityGroup(stability)] += 1
 		for _, commit := range fHistory.Elements {
 			var date Date
 			date.Year, date.Month, date.Day = commit.Commit.Author.When.Date()
@@ -166,8 +192,19 @@ func (h *History) ChartsData() map[string]ChartData {
 		}
 	}
 	xAxis, yAxis := toStrings(changesCount)
-	charts["function_changed_count"] = ChartData{X: template.JS(xAxis), Y: template.JS(yAxis), YAxis: "functions count",
-		Name: "function changed count"}
+	charts["function_changed_count"] = ChartData{
+		X: template.JS(xAxis),
+		Y: template.JS(yAxis),
+		YAxis: "functions count",
+		Name: "function changed count",
+		Type: "common",
+	}
+
+	charts["stability_chart"] = ChartData{
+		Type: "pie",
+		PieData:PieRowsFromMap(stabilityVersions),
+		Name:"stability",
+	}
 
 	var ordered Dates
 	for k := range changedPerDate {
@@ -180,8 +217,11 @@ func (h *History) ChartsData() map[string]ChartData {
 		xAxis2List = append(xAxis2List, date.String())
 	}
 
-	charts["functions_changed_per_day"] = ChartData{X: template.JS(strings.Join(xAxis2List, ",")),
-		Y: template.JS(strings.Join(yAxis2List, ",")), YAxis: "functions changed", Type: "timeseries",
+	charts["functions_changed_per_day"] = ChartData{
+		X: template.JS(strings.Join(xAxis2List, ",")),
+		Y: template.JS(strings.Join(yAxis2List, ",")),
+		YAxis: "functions changed",
+		Type: "timeseries",
 		Name: "functions changed per day",
 	}
 

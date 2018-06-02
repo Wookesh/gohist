@@ -39,13 +39,22 @@
                                 <script>
                                     var chart = c3.generate({
                                         bindto: '#{{ $key }}',
-                                        data: {
-                                            {{if ne $value.Type "datetimeseries"}}x: 'x',{{end}}
-                                            columns: [
-                                                {{if ne $value.Type "datetimeseries"}}['x', {{ $value.X }}],{{end}}
-                                                [{{ $value.YAxis }}, {{ $value.Y }}]
-                                            ]
-                                        }{{if eq $value.Type "timeseries"}},
+                                    data: {
+                                    {{if eq $value.Type "pie"}}
+                                        columns: [
+                                        {{range .PieData}}
+                                            [{{.Name}}, {{.Value}}],
+                                        {{end}}
+                                        ],
+                                        type: 'pie',
+                                    }
+                                    {{else}}
+                                    {{if ne $value.Type "datetimeseries"}}x: 'x',{{end}}
+                                        columns: [
+                                        {{if ne $value.Type "datetimeseries"}}['x', {{ $value.X }}],{{end}}
+                                            [{{ $value.YAxis }}, {{ $value.Y }}]
+                                        ]
+                                    }{{if eq $value.Type "timeseries"}},
                                         axis: {
                                             x: {
                                                 type: 'timeseries',
@@ -63,6 +72,7 @@
                                                 // }
                                             }
                                         }
+                                    {{end}}
                                     {{end}}
                                     });
                                 </script>
