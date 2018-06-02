@@ -2,11 +2,10 @@ package main
 
 import (
 	"flag"
+	"net/http"
 	_ "net/http/pprof"
 	"path/filepath"
 	"strings"
-
-	"net/http"
 
 	"github.com/sirupsen/logrus"
 	"github.com/wookesh/gohist/collector"

@@ -2,9 +2,8 @@ package diff
 
 import (
 	"go/ast"
-	"reflect"
-
 	"math"
+	"reflect"
 
 	"github.com/sirupsen/logrus"
 	"github.com/wookesh/gohist/util"

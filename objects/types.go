@@ -10,16 +10,16 @@ import (
 	"sync"
 	"time"
 
+	"github.com/sirupsen/logrus"
 	"github.com/wookesh/gohist/diff"
 	"github.com/wookesh/gohist/util"
 	"gopkg.in/src-d/go-git.v4/plumbing/object"
-	"github.com/sirupsen/logrus"
 )
 
 type History struct {
 	Data            map[string]*FunctionHistory
 	CommitsAnalyzed int32
-	MaxChanged int32
+	MaxChanged      int32
 	CountPerCommit  map[time.Time]int
 
 	m sync.Mutex
@@ -101,7 +101,7 @@ func (h *History) Stats() map[string]interface{} {
 }
 
 type PieRow struct {
-	Name string
+	Name  string
 	Value int
 }
 
@@ -113,11 +113,11 @@ func PieRowsFromMap(m map[string]int) (rows []PieRow) {
 }
 
 type ChartData struct {
-	X     template.JS
-	YAxis string
-	Y     template.JS
-	Type  string
-	Name  string
+	X       template.JS
+	YAxis   string
+	Y       template.JS
+	Type    string
+	Name    string
 	PieData []PieRow
 }
 
@@ -183,7 +183,7 @@ func (h *History) ChartsData() map[string]ChartData {
 	stabilityVersions := map[string]int{"stable": 0, "modified": 0, "active": 0}
 	for _, fHistory := range h.Data {
 		changesCount[fHistory.VersionsCount()] += 1
-		stability := 1.0 - float64(fHistory.VersionsCount()) / float64(fHistory.LifeTime)
+		stability := 1.0 - float64(fHistory.VersionsCount())/float64(fHistory.LifeTime)
 		stabilityVersions[ToStabilityGroup(stability)] += 1
 		for _, commit := range fHistory.Elements {
 			var date Date
@@ -193,17 +193,17 @@ func (h *History) ChartsData() map[string]ChartData {
 	}
 	xAxis, yAxis := toStrings(changesCount)
 	charts["function_changed_count"] = ChartData{
-		X: template.JS(xAxis),
-		Y: template.JS(yAxis),
+		X:     template.JS(xAxis),
+		Y:     template.JS(yAxis),
 		YAxis: "functions count",
-		Name: "function changed count",
-		Type: "common",
+		Name:  "function changed count",
+		Type:  "common",
 	}
 
 	charts["stability_chart"] = ChartData{
-		Type: "pie",
-		PieData:PieRowsFromMap(stabilityVersions),
-		Name:"stability",
+		Type:    "pie",
+		PieData: PieRowsFromMap(stabilityVersions),
+		Name:    "stability",
 	}
 
 	var ordered Dates
@@ -218,11 +218,11 @@ func (h *History) ChartsData() map[string]ChartData {
 	}
 
 	charts["functions_changed_per_day"] = ChartData{
-		X: template.JS(strings.Join(xAxis2List, ",")),
-		Y: template.JS(strings.Join(yAxis2List, ",")),
+		X:     template.JS(strings.Join(xAxis2List, ",")),
+		Y:     template.JS(strings.Join(yAxis2List, ",")),
 		YAxis: "functions changed",
-		Type: "timeseries",
-		Name: "functions changed per day",
+		Type:  "timeseries",
+		Name:  "functions changed per day",
 	}
 
 	var dateCounts DateCounts
