@@ -63,10 +63,14 @@ func (h *History) Stats() map[string]interface{} {
 	neverChanged := 0
 	mostChangedCount := 0
 	removed := 0
+	totalLifetime := 0
+	totalEditLifeTime := 0
 	var mostChanged string
 	for name, history := range h.Data {
 		versions := history.VersionsCount()
 		changes += versions - 1
+		totalLifetime += history.LifeTime
+		totalEditLifeTime += history.EditLifeTime
 		if versions == 1 {
 			neverChanged++
 		}
@@ -81,6 +85,8 @@ func (h *History) Stats() map[string]interface{} {
 	stats["Analyzed commits"] = h.CommitsAnalyzed
 	stats["Changes per commit"] = float64(changes) / float64(h.CommitsAnalyzed)
 	stats["Changes per function"] = float64(changes) / float64(len(h.Data))
+	stats["Avg lifetime"] = float64(totalLifetime) / float64(len(h.Data))
+	stats["Avg edit lifetime"] = float64(totalEditLifeTime) / float64(len(h.Data))
 	stats["Max changes in commit"] = h.MaxChanged
 	stats["Never changed"] = neverChanged
 	stats["Functions"] = len(h.Data)
@@ -252,6 +258,7 @@ func (h *History) ChartsData() map[string]ChartData {
 type FunctionHistory struct {
 	History         []*HistoryElement
 	LifeTime        int
+	EditLifeTime    int
 	FirstAppearance time.Time
 	LastAppearance  time.Time
 	Deleted         bool
@@ -318,6 +325,7 @@ func (fh *FunctionHistory) AddElement(decl *ast.FuncDecl, commit *object.Commit,
 		Offset:   int(decl.Pos()),
 		New:      !anySame,
 	}
+	fh.EditLifeTime = fh.LifeTime
 
 	for _, parent := range parents {
 		parent.Children[sha] = element

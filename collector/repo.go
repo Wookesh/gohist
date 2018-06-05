@@ -268,7 +268,11 @@ func GetFunctions(src, fileName, pack string) (map[string]*ast.FuncDecl, error) 
 	//variables := make(map[string]*objects.Variable)
 	for _, decl := range f.Decls {
 		if function, ok := decl.(*ast.FuncDecl); ok {
-			functions[pack+"."+createSignature(function, fileName)] = function
+			prefix := pack + "."
+			if pack == "." {
+				prefix = ""
+			}
+			functions[prefix+createSignature(function, fileName)] = function
 		}
 		//if v, ok := decl.(*ast.GenDecl); ok {
 		//	switch v.Tok {
