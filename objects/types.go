@@ -25,27 +25,27 @@ type History struct {
 	m sync.Mutex
 }
 
-func (h *History) Get(funcID string) *FunctionHistory {
-	h.m.Lock()
-	defer h.m.Unlock()
-	funcHistory, ok := h.Data[funcID]
+func (history *History) Get(funcID string) *FunctionHistory {
+	history.m.Lock()
+	defer history.m.Unlock()
+	funcHistory, ok := history.Data[funcID]
 	if !ok {
 		funcHistory = NewFunctionHistory(funcID)
-		h.Data[funcID] = funcHistory
+		history.Data[funcID] = funcHistory
 	}
 	return funcHistory
 }
 
-func (h *History) Mark(sha time.Time, count int) {
-	h.m.Lock()
-	h.CountPerCommit[sha] = count
-	h.m.Unlock()
+func (history *History) Mark(sha time.Time, count int) {
+	history.m.Lock()
+	history.CountPerCommit[sha] = count
+	history.m.Unlock()
 }
 
-func (h *History) CheckForDeleted(commit *object.Commit) {
-	h.m.Lock()
-	defer h.m.Unlock()
-	for _, fh := range h.Data {
+func (history *History) CheckForDeleted(commit *object.Commit) {
+	history.m.Lock()
+	defer history.m.Unlock()
+	for _, fh := range history.Data {
 		fh.Delete(commit)
 	}
 }
@@ -57,7 +57,7 @@ func NewHistory() *History {
 	}
 }
 
-func (h *History) Stats() map[string]interface{} {
+func (history *History) Stats() map[string]interface{} {
 	stats := make(map[string]interface{})
 	changes := 0
 	neverChanged := 0
@@ -65,12 +65,14 @@ func (h *History) Stats() map[string]interface{} {
 	removed := 0
 	totalLifetime := 0
 	totalEditLifeTime := 0
+	totalVersions := 0
 	var mostChanged string
-	for name, history := range h.Data {
+	for name, history := range history.Data {
 		versions := history.VersionsCount()
 		changes += versions - 1
 		totalLifetime += history.LifeTime
 		totalEditLifeTime += history.EditLifeTime
+		totalVersions += versions
 		if versions == 1 {
 			neverChanged++
 		}
@@ -82,14 +84,15 @@ func (h *History) Stats() map[string]interface{} {
 			mostChangedCount = versions
 		}
 	}
-	stats["Analyzed commits"] = h.CommitsAnalyzed
-	stats["Changes per commit"] = float64(changes) / float64(h.CommitsAnalyzed)
-	stats["Changes per function"] = float64(changes) / float64(len(h.Data))
-	stats["Avg lifetime"] = float64(totalLifetime) / float64(len(h.Data))
-	stats["Avg edit lifetime"] = float64(totalEditLifeTime) / float64(len(h.Data))
-	stats["Max changes in commit"] = h.MaxChanged
+	stats["Analyzed commits"] = history.CommitsAnalyzed
+	stats["Changes per commit"] = float64(changes) / float64(history.CommitsAnalyzed)
+	stats["Changes per function"] = float64(changes) / float64(len(history.Data))
+	stats["Avg lifetime"] = float64(totalLifetime) / float64(len(history.Data))
+	stats["Avg edit lifetime"] = float64(totalEditLifeTime) / float64(len(history.Data))
+	stats["Max changes in commit"] = history.MaxChanged
+	stats["Total versions"] = totalVersions
 	stats["Never changed"] = neverChanged
-	stats["Functions"] = len(h.Data)
+	stats["Functions"] = len(history.Data)
 	stats["Most changed"] = fmt.Sprintf("%v [%v]", mostChanged, mostChangedCount)
 	stats["Removed"] = removed
 	logrus.Infof("%v,%v,%v,%v,%v,%v,%v,%v",
@@ -133,23 +136,23 @@ type Date struct {
 	Day   int
 }
 
-func (d Date) String() string {
-	s := time.Date(d.Year, d.Month, d.Day, 0, 0, 0, 0, time.Local).Format("'2006-01-02'")
-	return s
+func (date Date) String() string {
+	return time.Date(date.Year, date.Month, date.Day, 0, 0, 0, 0, time.Local).
+		Format("'2006-01-02'")
 }
 
 type Dates []Date
 
-func (d Dates) Len() int { return len(d) }
+func (dates Dates) Len() int { return len(dates) }
 
-func (d Dates) Less(i, j int) bool {
-	a := d[i]
-	b := d[j]
+func (dates Dates) Less(i, j int) bool {
+	a := dates[i]
+	b := dates[j]
 	return a.Year < b.Year || (a.Year == b.Year && (a.Month < b.Month || (a.Month == b.Month && a.Day < b.Day)))
 }
 
-func (d Dates) Swap(i, j int) {
-	d[i], d[j] = d[j], d[i]
+func (dates Dates) Swap(i, j int) {
+	dates[i], dates[j] = dates[j], dates[i]
 }
 
 type DateCount struct {
@@ -181,13 +184,14 @@ func ToStabilityGroup(stability float64) string {
 	return "active"
 }
 
-func (h *History) ChartsData() map[string]ChartData {
+func (history *History) ChartsData() map[string]ChartData {
 	charts := make(map[string]ChartData)
 
 	changesCount := make(map[int]int)
 	changedPerDate := make(map[Date]int)
+	countPerDate := make(map[Date]int)
 	stabilityVersions := map[string]int{"stable": 0, "modified": 0, "active": 0}
-	for _, fHistory := range h.Data {
+	for _, fHistory := range history.Data {
 		changesCount[fHistory.VersionsCount()] += 1
 		stability := 1.0 - float64(fHistory.VersionsCount())/float64(fHistory.LifeTime)
 		stabilityVersions[ToStabilityGroup(stability)] += 1
@@ -231,24 +235,30 @@ func (h *History) ChartsData() map[string]ChartData {
 		Name:  "functions changed per day",
 	}
 
-	var dateCounts DateCounts
-	for date, count := range h.CountPerCommit {
-		dateCounts = append(dateCounts, DateCount{date, count})
+	for date, count := range history.CountPerCommit {
+		y, m, d := date.Date()
+		if count > countPerDate[Date{y, m, d}] {
+			countPerDate[Date{y, m, d}] = count
+		}
+	}
+	var datesOrder Dates
+	for date := range countPerDate {
+		datesOrder = append(datesOrder, date)
 	}
 
-	sort.Sort(dateCounts)
+	sort.Sort(datesOrder)
 
 	var dates, counts []string
-	for _, d := range dateCounts {
-		dates = append(dates, "'"+d.Date.Format("2006-01-02T15:04:05")+"'")
-		counts = append(counts, strconv.FormatInt(int64(d.Count), 10))
+	for _, d := range datesOrder {
+		counts = append(counts, strconv.FormatInt(int64(countPerDate[d]), 10))
+		dates = append(dates, d.String())
 	}
 
 	charts["functions_count_in_time"] = ChartData{
-		Y:     template.JS(strings.Join(counts, ",")),
 		X:     template.JS(strings.Join(dates, ",")),
+		Y:     template.JS(strings.Join(counts, ",")),
 		YAxis: "functions count",
-		Type:  "datetimeseries",
+		Type:  "timeseries",
 		Name:  "functions count in time",
 	}
 
