@@ -4,10 +4,32 @@ import (
 	"go/ast"
 	"reflect"
 
+	"sync/atomic"
+
 	"github.com/sirupsen/logrus"
 )
 
+var (
+	Depth          int64 = 0
+	CountSameCalls int64 = 0
+)
+
 func IsSame(aNode, bNode ast.Node) bool {
+	if aNode != nil {
+		depth := int64(getDepth(aNode, 0))
+		if depth > 1 {
+			atomic.AddInt64(&CountSameCalls, 1)
+			atomic.AddInt64(&Depth, depth)
+		}
+	}
+	//if bNode != nil {
+	//	atomic.AddInt64(&CountSameCalls, 1)
+	//	atomic.AddInt64(&Depth, int64(getDepth(bNode, 0)))
+	//}
+	return isSame(aNode, bNode)
+}
+
+func isSame(aNode, bNode ast.Node) bool {
 	if aNode == nil {
 		return bNode == nil
 	} else {
@@ -810,5 +832,369 @@ func IsSame(aNode, bNode ast.Node) bool {
 	default:
 		logrus.Errorln("unimplemented case:", reflect.TypeOf(a), reflect.TypeOf(bNode))
 		return false
+	}
+}
+
+func IsSameText(a, b string) bool {
+	return a == b
+}
+
+func getDepth(aNode ast.Node, depth int) int {
+	depth++
+	if aNode == nil {
+		return 0
+	}
+	switch a := aNode.(type) {
+	case *ast.ArrayType:
+		if a == nil {
+			return depth
+		}
+		return max(getDepth(a.Elt, depth), getDepth(a.Len, depth))
+	case *ast.AssignStmt:
+		if a == nil {
+			return depth
+		}
+		m := depth
+		for i := 0; i < len(a.Lhs); i++ {
+			d := getDepth(a.Lhs[i], depth)
+			if m < d {
+				m = d
+			}
+		}
+		for i := 0; i < len(a.Rhs); i++ {
+			d := getDepth(a.Rhs[i], depth)
+			if m < d {
+				m = d
+			}
+		}
+		return m
+	case *ast.BadDecl:
+		if a == nil {
+			return depth
+		}
+		return depth
+	case *ast.BadExpr:
+		if a == nil {
+			return depth
+		}
+		return depth
+	case *ast.BadStmt:
+		if a == nil {
+			return depth
+		}
+		return depth
+	case *ast.BasicLit:
+		if a == nil {
+			return depth
+		}
+		return depth
+	case *ast.BinaryExpr:
+		if a == nil {
+			return depth
+		}
+		return max(getDepth(a.X, depth), getDepth(a.Y, depth))
+	case *ast.BlockStmt:
+		if a == nil {
+			return depth
+		}
+		m := depth
+		for i := 0; i < len(a.List); i++ {
+			d := getDepth(a.List[i], depth)
+			if d > m {
+				m = d
+			}
+		}
+		return m
+	case *ast.BranchStmt:
+		if a == nil {
+			return depth
+		}
+		return getDepth(a.Label, depth)
+	case *ast.CallExpr:
+		if a == nil {
+			return depth
+		}
+		m := depth
+		for i := 0; i < len(a.Args); i++ {
+			d := getDepth(a.Args[i], depth)
+			if d > m {
+				m = d
+			}
+		}
+		return max(m, getDepth(a.Fun, depth))
+	case *ast.CaseClause:
+		if a == nil {
+			return depth
+		}
+		m := depth
+		for i := 0; i < len(a.List); i++ {
+			d := getDepth(a.List[i], depth)
+			if d > m {
+				m = d
+			}
+		}
+		for i := 0; i < len(a.Body); i++ {
+			d := getDepth(a.Body[i], depth)
+			if d > m {
+				m = d
+			}
+		}
+		return m
+	case *ast.ChanType:
+		if a == nil {
+			return depth
+		}
+		return getDepth(a.Value, depth)
+	case *ast.CommClause:
+		if a == nil {
+			return depth
+		}
+		m := depth
+		for i := 0; i < len(a.Body); i++ {
+			d := getDepth(a.Body[i], depth)
+			m = max(d, m)
+		}
+		return max(m, getDepth(a.Comm, depth))
+	case *ast.Comment:
+		if a == nil {
+			return depth
+		}
+		return depth
+	case *ast.CommentGroup:
+		if a == nil {
+			return depth
+		}
+		return depth
+	case *ast.CompositeLit:
+		if a == nil {
+			return depth
+		}
+		m := depth
+		for i := 0; i < len(a.Elts); i++ {
+			d := getDepth(a.Elts[i], depth)
+			m = max(d, m)
+		}
+		return max(m, getDepth(a.Type, depth))
+	case *ast.DeclStmt:
+		if a == nil {
+			return depth
+		}
+		return getDepth(a.Decl, depth)
+	case *ast.DeferStmt:
+		if a == nil {
+			return depth
+		}
+		return getDepth(a.Call, depth)
+	case *ast.Ellipsis:
+		if a == nil {
+			return depth
+		}
+		return getDepth(a.Elt, depth)
+	case *ast.EmptyStmt:
+		if a == nil {
+			return depth
+		}
+		return depth
+	case *ast.ExprStmt:
+		if a == nil {
+			return depth
+		}
+		return getDepth(a.X, depth)
+	case *ast.Field:
+		if a == nil {
+			return depth
+		}
+		m := depth
+		for i := 0; i < len(a.Names); i++ {
+			d := getDepth(nil, depth)
+			m = max(d, m)
+		}
+		return max(m, getDepth(a.Type, depth))
+	case *ast.FieldList:
+		if a == nil {
+			return depth
+		}
+		m := depth
+		for i := 0; i < len(a.List); i++ {
+			d := getDepth(nil, depth)
+			m = max(d, m)
+		}
+		return m
+	case *ast.ForStmt:
+		if a == nil {
+			return depth
+		}
+		return max(getDepth(a.Init, depth), max(getDepth(a.Cond, depth), max(getDepth(a.Post, depth), getDepth(a.Body, depth))))
+	case *ast.FuncDecl:
+		if a == nil {
+			return depth
+		}
+		return max(getDepth(a.Name, depth), max(getDepth(a.Type, depth), getDepth(a.Body, depth)))
+	case *ast.FuncLit:
+		if a == nil {
+			return depth
+		}
+		return max(getDepth(a.Type, depth), getDepth(a.Body, depth))
+	case *ast.FuncType:
+		if a == nil {
+			return depth
+		}
+		return max(getDepth(a.Params, depth), getDepth(a.Results, depth))
+	case *ast.GenDecl:
+		if a == nil {
+			return depth
+		}
+		m := depth
+		for i := 0; i < len(a.Specs); i++ {
+			d := getDepth(nil, depth)
+			m = max(d, m)
+		}
+		return m
+	case *ast.GoStmt:
+		if a == nil {
+			return depth
+		}
+		return getDepth(a.Call, depth)
+	case *ast.Ident:
+		if a == nil {
+			return depth
+		}
+		return depth
+	case *ast.IfStmt:
+		if a == nil {
+			return depth
+		}
+		return max(getDepth(a.Init, depth), max(getDepth(a.Cond, depth), max(getDepth(a.Body, depth), getDepth(a.Else, depth))))
+	case *ast.ImportSpec:
+		if a == nil {
+			return depth
+		}
+		return getDepth(a.Name, depth)
+	case *ast.IncDecStmt:
+		if a == nil {
+			return depth
+		}
+		return getDepth(a.X, depth)
+	case *ast.IndexExpr:
+		if a == nil {
+			return depth
+		}
+		return max(getDepth(a.X, depth), getDepth(a.Index, depth))
+	case *ast.InterfaceType:
+		if a == nil {
+			return depth
+		}
+		return getDepth(a.Methods, depth)
+	case *ast.KeyValueExpr:
+		if a == nil {
+			return depth
+		}
+		return max(getDepth(a.Value, depth), getDepth(a.Key, depth))
+	case *ast.LabeledStmt:
+		if a == nil {
+			return depth
+		}
+		return max(getDepth(a.Label, depth), getDepth(a.Stmt, depth))
+	case *ast.MapType:
+		if a == nil {
+			return depth
+		}
+		return max(getDepth(a.Key, depth), getDepth(a.Value, depth))
+	case *ast.Package:
+		if a == nil {
+			return depth
+		}
+		return depth
+	case *ast.ParenExpr:
+		if a == nil {
+			return depth
+		}
+		return getDepth(a.X, depth)
+	case *ast.RangeStmt:
+		if a == nil {
+			return depth
+		}
+		return max(getDepth(a.Key, depth), max(getDepth(a.Value, depth), max(getDepth(a.X, depth), getDepth(a.Body, depth))))
+	case *ast.ReturnStmt:
+		if a == nil {
+			return depth
+		}
+		m := depth
+		for i := 0; i < len(a.Results); i++ {
+			d := getDepth(nil, depth)
+			m = max(m, d)
+		}
+		return m
+	case *ast.SelectStmt:
+		if a == nil {
+			return depth
+		}
+		return getDepth(a.Body, depth)
+	case *ast.SelectorExpr:
+		if a == nil {
+			return depth
+		}
+		return max(getDepth(a.X, depth), getDepth(a.Sel, depth))
+	case *ast.SendStmt:
+		if a == nil {
+			return depth
+		}
+		return max(getDepth(a.Value, depth), getDepth(a.Chan, depth))
+	case *ast.SliceExpr:
+		if a == nil {
+			return depth
+		}
+		return max(getDepth(a.X, depth), max(getDepth(a.High, depth), max(getDepth(a.Low, depth), getDepth(a.Max, depth))))
+	case *ast.StarExpr:
+		if a == nil {
+			return depth
+		}
+		return getDepth(a.X, depth)
+	case *ast.StructType:
+		if a == nil {
+			return depth
+		}
+		return getDepth(a.Fields, depth)
+	case *ast.SwitchStmt:
+		if a == nil {
+			return depth
+		}
+		return max(getDepth(a.Init, depth), max(getDepth(a.Tag, depth), getDepth(a.Body, depth)))
+	case *ast.TypeAssertExpr:
+		if a == nil {
+			return depth
+		}
+		return max(getDepth(a.X, depth), getDepth(a.Type, depth))
+	case *ast.TypeSpec:
+		if a == nil {
+			return depth
+		}
+		return max(getDepth(a.Type, depth), getDepth(a.Name, depth))
+	case *ast.TypeSwitchStmt:
+		if a == nil {
+			return depth
+		}
+		return max(getDepth(a.Assign, depth), max(getDepth(a.Init, depth), getDepth(a.Body, depth)))
+	case *ast.UnaryExpr:
+		if a == nil {
+			return depth
+		}
+		return getDepth(a.X, depth)
+	case *ast.ValueSpec:
+		if a == nil {
+			return depth
+		}
+		m := depth
+		for i := 0; i < len(a.Names); i++ {
+			d := getDepth(nil, depth)
+			m = max(d, m)
+		}
+		for i := 0; i < len(a.Values); i++ {
+			d := getDepth(nil, depth)
+			m = max(d, m)
+		}
+		return max(m, getDepth(a.Type, depth))
+	default:
+		return depth
 	}
 }

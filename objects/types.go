@@ -95,6 +95,7 @@ func (history *History) Stats() map[string]interface{} {
 	stats["Functions"] = len(history.Data)
 	stats["Most changed"] = fmt.Sprintf("%v [%v]", mostChanged, mostChangedCount)
 	stats["Removed"] = removed
+	stats["avgDepth"] = float64(diff.Depth) / float64(diff.CountSameCalls)
 	logrus.Infof("%v,%v,%v,%v,%v,%v,%v,%v",
 		stats["Analyzed commits"],
 		stats["Changes per commit"],
