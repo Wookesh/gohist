@@ -4,7 +4,7 @@ import (
 	"go/ast"
 	"reflect"
 
-	"github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 func diffStmt(aStmt ast.Stmt, bNode ast.Node, mode Mode) Coloring {

@@ -4,7 +4,7 @@ import (
 	"go/ast"
 	"reflect"
 
-	"github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 func diffExpr(aExpr ast.Expr, bNode ast.Node, mode Mode) Coloring {
@@ -52,6 +52,8 @@ func diffExpr(aExpr ast.Expr, bNode ast.Node, mode Mode) Coloring {
 		return diffTypeAssertExpr(a, bExpr, mode)
 	case *ast.UnaryExpr:
 		return diffUnaryExpr(a, bExpr, mode)
+	case *ast.Ellipsis:
+		return diffEllipsis(a, bExpr, mode)
 	default:
 		logrus.Errorln("diffExpr:", "unimplemented case:", reflect.TypeOf(a))
 		return Coloring{NewColorChange(mode.ToColor(), a)}
@@ -276,5 +278,15 @@ func diffChanType(a *ast.ChanType, bExpr ast.Expr, mode Mode) (coloring Coloring
 		logrus.Errorln("diffChanType:", a, b)
 	}
 	coloring = diff(a.Value, b.Value, mode)
+	return
+}
+
+func diffEllipsis(a *ast.Ellipsis, bExpr ast.Expr, mode Mode) (coloring Coloring) {
+	logrus.Debugln("diffChanType:", a, bExpr)
+	b, ok := bExpr.(*ast.Ellipsis)
+	if !ok {
+		return Coloring{NewColorChange(mode.ToColor(), a)}
+	}
+	coloring = diff(a.Elt, b.Elt, mode)
 	return
 }

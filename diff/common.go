@@ -5,7 +5,7 @@ import (
 	"go/token"
 	"reflect"
 
-	"github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/wookesh/gohist/util"
 )
 
@@ -88,4 +88,11 @@ func colorList(a, b []ast.Node, mode Mode, callFunc string) (coloring Coloring) 
 		}
 	}
 	return
+}
+
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
 }
