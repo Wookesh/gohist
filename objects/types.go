@@ -289,7 +289,7 @@ func NewFunctionHistory(id string) *FunctionHistory {
 	}
 }
 
-func (fh *FunctionHistory) AddElement(decl *ast.FuncDecl, commit *object.Commit, body []byte) bool {
+func (fh *FunctionHistory) AddElement(decl *ast.FuncDecl, commit *object.Commit, body []byte, simple bool) bool {
 	fh.m.Lock()
 	defer fh.m.Unlock()
 
@@ -315,7 +315,8 @@ func (fh *FunctionHistory) AddElement(decl *ast.FuncDecl, commit *object.Commit,
 				continue
 			}
 			parents[parentSHA] = parent
-			if diff.IsSame(parent.Func, decl) {
+			if (!simple && diff.IsSame(parent.Func, decl)) ||
+				(simple && diff.IsSameText(parent.Text, string(body[decl.Pos()-1:decl.End()-1]))) {
 				anySame = true
 				parentMapping[parent.Commit.Hash.String()] = true
 			} else {

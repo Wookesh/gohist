@@ -178,7 +178,7 @@ func Run(history *objects.History, repoName, port string) {
 
 	logrus.Infoln("GoHist:", "started web server")
 
-	if err := e.Start(":" + port); err != nil {
+	if err := e.Start("0.0.0.0:" + port); err != nil {
 		logrus.Fatalln(err)
 	}
 }

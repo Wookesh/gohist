@@ -18,6 +18,7 @@ var (
 	start       = flag.String("start", "master", "newest commit to parse")
 	end         = flag.String("end", "", "latest commit to parse")
 	debug       = flag.Bool("debug", false, "Run debug mode")
+	simple      = flag.Bool("simple_diff", false, "Create graph using standard diff")
 )
 
 func main() {
@@ -43,7 +44,7 @@ func main() {
 		*projectPath = absProjectPath
 	}
 
-	history, err := collector.CreateHistory(*projectPath, *start, *end, false)
+	history, err := collector.CreateHistory(*projectPath, *start, *end, false, *simple)
 	if err != nil {
 		panic(err)
 	}

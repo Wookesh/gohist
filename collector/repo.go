@@ -20,7 +20,7 @@ import (
 	"gopkg.in/src-d/go-git.v4/plumbing/object"
 )
 
-func CreateHistory(repoPath string, start, end string, withTests bool) (*objects.History, error) {
+func CreateHistory(repoPath string, start, end string, withTests bool, simple bool) (*objects.History, error) {
 	logrus.Debugln("CreateHistory:", repoPath)
 	repo, err := git.PlainOpen(repoPath)
 	if err != nil {
@@ -120,7 +120,7 @@ func CreateHistory(repoPath string, start, end string, withTests bool) (*objects
 					return nil
 				}
 				for funcID, funcDeclaration := range functions {
-					added := history.Get(funcID).AddElement(funcDeclaration, node.Commit, body)
+					added := history.Get(funcID).AddElement(funcDeclaration, node.Commit, body, simple)
 					if added {
 						atomic.AddInt32(&changed, 1)
 					}
