@@ -85,17 +85,21 @@ func (history *History) Stats() map[string]interface{} {
 		}
 	}
 	stats["Analyzed commits"] = history.CommitsAnalyzed
-	stats["Changes per commit"] = float64(changes) / float64(history.CommitsAnalyzed)
-	stats["Changes per function"] = float64(changes) / float64(len(history.Data))
+	if history.CommitsAnalyzed == 1 {
+		stats["Avg changes per commit"] = float64(changes)
+	} else {
+		stats["Avg changes per commit"] = float64(changes) / float64(history.CommitsAnalyzed)
+	}
+	stats["Avg changes per function"] = float64(changes) / float64(len(history.Data))
 	stats["Avg lifetime"] = float64(totalLifetime) / float64(len(history.Data))
-	stats["Avg edit lifetime"] = float64(totalEditLifeTime) / float64(len(history.Data))
+	stats["Avg edittime"] = float64(totalEditLifeTime) / float64(len(history.Data))
 	stats["Max changes in commit"] = history.MaxChanged
 	stats["Total versions"] = totalVersions
 	stats["Never changed"] = neverChanged
 	stats["Functions"] = len(history.Data)
 	stats["Most changed"] = fmt.Sprintf("%v [%v]", mostChanged, mostChangedCount)
 	stats["Removed"] = removed
-	stats["avgDepth"] = float64(diff.Depth) / float64(diff.CountSameCalls)
+	//stats["avgDepth"] = float64(diff.Depth) / float64(diff.CountSameCalls)
 	logrus.Infof("%v,%v,%v,%v,%v,%v,%v,%v",
 		stats["Analyzed commits"],
 		stats["Changes per commit"],
